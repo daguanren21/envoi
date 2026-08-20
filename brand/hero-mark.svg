@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" fill="none" role="img" aria-label="envoi request envelope mark">
+  <title>envoi request envelope mark</title>
+  <defs>
+    <linearGradient id="surface" x1="36" y1="20" x2="280" y2="300" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2A3140"/>
+      <stop offset="1" stop-color="#121720"/>
+    </linearGradient>
+    <linearGradient id="coral" x1="76" y1="102" x2="204" y2="238" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF8069"/>
+      <stop offset="1" stop-color="#E54C37"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="118" y1="72" x2="246" y2="208" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE08A"/>
+      <stop offset="1" stop-color="#F2AD32"/>
+    </linearGradient>
+    <filter id="shadow" x="34" y="34" width="252" height="252" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#090D14" flood-opacity="0.38"/>
+    </filter>
+  </defs>
+  <rect x="48" y="48" width="224" height="224" rx="54" fill="url(#surface)" filter="url(#shadow)"/>
+  <rect x="48.75" y="48.75" width="222.5" height="222.5" rx="53.25" stroke="#FFF7E9" stroke-opacity="0.14" stroke-width="1.5"/>
+  <path d="M88 120L88 232L200 232L88 120Z" fill="url(#coral)"/>
+  <path d="M120 88L232 88L232 200L120 88Z" fill="url(#amber)"/>
+  <path d="M110 208L208 110" stroke="#FFF7E9" stroke-opacity="0.16" stroke-width="2" stroke-linecap="round"/>
+</svg>

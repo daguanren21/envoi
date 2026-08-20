@@ -1,9 +1,19 @@
 <p align="center">
-  <img src="./brand/logo.svg" alt="envoi" width="200">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./brand/logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="./brand/logo-light.svg">
+    <img src="./brand/logo-light.svg" alt="envoi" width="200">
+  </picture>
 </p>
 
 <p align="center">
   <strong>English</strong> · <a href="./README.zh-CN.md">简体中文</a>
+</p>
+
+<p align="center">
+  <a href="https://daguanren21.github.io/envoi/">Documentation</a> ·
+  <a href="https://www.npmjs.com/package/@envoijs/http">npm</a> ·
+  <a href="https://github.com/daguanren21/envoi">GitHub</a>
 </p>
 
 # envoi

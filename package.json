@@ -8,6 +8,9 @@
     "build": "turbo run build --filter=./packages/*",
     "dev": "turbo run dev --filter=./packages/* --parallel",
     "typecheck": "turbo run typecheck --filter=./packages/*",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "test": "vitest run",
     "audit": "pnpm audit --audit-level high",
     "lint": "oxlint -c .oxlintrc.json .",
@@ -18,7 +21,7 @@
     "release:pack": "pnpm --dir packages/http pack --pack-destination ../../release",
     "release:dry-run": "pnpm --filter @envoijs/http publish --dry-run --no-git-checks",
     "package:check": "publint packages/http && attw --pack packages/http",
-    "verify": "pnpm audit && pnpm lint && pnpm fmt:check && pnpm typecheck && pnpm test && pnpm build && pnpm package:check",
+    "verify": "pnpm audit && pnpm lint && pnpm fmt:check && pnpm typecheck && pnpm test && pnpm build && pnpm docs:build && pnpm package:check",
     "ci": "pnpm verify",
     "commitlint": "commitlint --edit"
   },
@@ -36,6 +39,7 @@
     "tsdown": "catalog:",
     "turbo": "^2.6.3",
     "typescript": "catalog:",
+    "vitepress": "2.0.0-alpha.19",
     "vitest": "catalog:"
   },
   "lint-staged": {

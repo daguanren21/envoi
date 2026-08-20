@@ -136,4 +136,4 @@ const response = await http.raw<Blob>("/reports/export", {
 
 `raw()` and blob responses still enforce HTTP failures. Use `ignoreResponseError: true` only when inspecting a non-ok response intentionally.
 
-Full documentation: [github.com/daguanren21/envoi](https://github.com/daguanren21/envoi).
+Full documentation: [daguanren21.github.io/envoi](https://daguanren21.github.io/envoi/).

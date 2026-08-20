@@ -4,6 +4,8 @@ release
 .DS_Store
 *.local
 coverage
+docs/.vitepress/cache
+docs/.vitepress/dist
 .turbo
 *.log
 .idea

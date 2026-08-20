@@ -1,10 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" role="img" aria-label="envoi">
   <title>envoi</title>
-  <!--
-    pli ouvert: two right triangles that close into a 16×16 square.
-    Packet (6,10)-(6,26)-(22,26); flap (10,6)-(26,6)-(26,22).
-    Slope-1 fold; gap is get() peeling the envelope.
-  -->
-  <polygon fill="#1C1917" points="6,10 6,26 22,26"/>
-  <polygon fill="#1C1917" points="10,6 26,6 26,22"/>
+  <polygon fill="#EF6048" points="6,10 6,26 22,26"/>
+  <polygon fill="#F4B740" points="10,6 26,6 26,22"/>
 </svg>
