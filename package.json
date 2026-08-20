@@ -1,0 +1,50 @@
+{
+  "name": "envoi-monorepo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare": "husky",
+    "preinstall": "npx only-allow pnpm",
+    "build": "turbo run build --filter=./packages/*",
+    "dev": "turbo run dev --filter=./packages/* --parallel",
+    "typecheck": "turbo run typecheck --filter=./packages/*",
+    "test": "vitest run",
+    "audit": "pnpm audit --audit-level high",
+    "lint": "oxlint -c .oxlintrc.json .",
+    "lint:fix": "oxlint -c .oxlintrc.json --fix .",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
+    "release:version": "pnpm --dir packages/http version --no-git-tag-version --allow-same-version",
+    "release:pack": "pnpm --dir packages/http pack --pack-destination ../../release",
+    "release:dry-run": "pnpm --filter @envoijs/http publish --dry-run --no-git-checks",
+    "package:check": "publint packages/http && attw --pack packages/http",
+    "verify": "pnpm audit && pnpm lint && pnpm fmt:check && pnpm typecheck && pnpm test && pnpm build && pnpm package:check",
+    "ci": "pnpm verify",
+    "commitlint": "commitlint --edit"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@types/node": "^24.10.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "only-allow": "^1.2.2",
+    "oxfmt": "^0.64.0",
+    "oxlint": "^1.79.0",
+    "publint": "^0.3.24",
+    "tsdown": "catalog:",
+    "turbo": "^2.6.3",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "lint-staged": {
+    "*.{ts,js,mjs,cjs,json,yml,yaml,md}": "oxfmt",
+    "packages/**/*.{ts,js,mjs,cjs}": "oxlint --fix"
+  },
+  "engines": {
+    "node": "^22.11 || ^24 || >=26",
+    "pnpm": ">=11"
+  },
+  "packageManager": "pnpm@11.22.0"
+}

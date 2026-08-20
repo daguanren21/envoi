@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact @envoijs/http semver, for example 0.1.0 or 1.0.0-rc.1"
+        required: true
+        type: string
+      npm_tag:
+        description: "npm dist-tag"
+        required: true
+        default: latest
+        type: choice
+        options:
+          - latest
+          - next
+          - beta
+
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
+
+# npm Trusted Publishing must match:
+# owner=daguanren21 repo=envoi workflow=release.yml environment=<empty>
+permissions: {}
+
+jobs:
+  release:
+    name: Version, verify, pack, and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Ensure npm supports Trusted Publishing
+        run: npm install --global npm@11.5.1
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Validate exact semver input
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          node --input-type=module -e '
+            const version = process.env.RELEASE_VERSION
+            const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/
+            if (!semver.test(version)) {
+              console.error(`Invalid exact semver: ${version}`)
+              process.exit(1)
+            }
+          '
+
+      - name: Set package version with pnpm
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          pnpm release:version "$RELEASE_VERSION"
+          pnpm install --lockfile-only
+
+      - run: pnpm verify
+
+      - name: Commit version and push tag
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/http/package.json pnpm-lock.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): v$RELEASE_VERSION"
+            git push origin HEAD:main
+          fi
+          if ! git ls-remote --exit-code --tags origin "refs/tags/v$RELEASE_VERSION" >/dev/null 2>&1; then
+            git tag "v$RELEASE_VERSION"
+            git push origin "v$RELEASE_VERSION"
+          fi
+
+      - name: Check whether npm version already exists
+        id: registry
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          if npm view "@envoijs/http@$RELEASE_VERSION" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pack with pnpm
+        if: steps.registry.outputs.published != 'true'
+        run: |
+          rm -rf release
+          mkdir release
+          pnpm release:pack
+
+      # pnpm 11 publish is native and does not perform npm's OIDC exchange.
+      # npm CLI uploads the pnpm-generated tarball using Trusted Publishing.
+      - name: Publish tarball with npm OIDC
+        if: steps.registry.outputs.published != 'true'
+        env:
+          NPM_TAG: ${{ inputs.npm_tag }}
+        run: npm publish release/*.tgz --tag "$NPM_TAG" --access public --provenance
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          gh release view "v$RELEASE_VERSION" >/dev/null 2>&1 || \
+            gh release create "v$RELEASE_VERSION" --title "v$RELEASE_VERSION" --generate-notes

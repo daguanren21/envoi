@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 48" fill="none" role="img" aria-label="envoi">
+  <title>envoi</title>
+  <g transform="translate(4,8)">
+    <polygon fill="#1C1917" points="6,10 6,26 22,26"/>
+    <polygon fill="#1C1917" points="10,6 26,6 26,22"/>
+  </g>
+  <text
+    x="48"
+    y="31"
+    fill="#1C1917"
+    font-family="Avenir Next, Avenir, Helvetica Neue, ui-sans-serif, sans-serif"
+    font-size="22"
+    font-weight="500"
+    letter-spacing="0.08em"
+  >envoi</text>
+</svg>

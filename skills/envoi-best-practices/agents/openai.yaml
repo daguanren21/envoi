@@ -1,0 +1,7 @@
+interface:
+  display_name: "envoi Best Practices"
+  short_description: "Adapter, hook, envelope, state, and release guidance"
+  default_prompt: "Use $envoi-best-practices to implement or review this envoi integration with strict transport, envelope, hook, state-ownership, and release boundaries."
+
+policy:
+  allow_implicit_invocation: true
