@@ -75,22 +75,6 @@ jobs:
 
       - run: pnpm verify
 
-      - name: Commit version and push tag
-        env:
-          RELEASE_VERSION: ${{ inputs.version }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add packages/http/package.json pnpm-lock.yaml
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(release): v$RELEASE_VERSION"
-            git push origin HEAD:main
-          fi
-          if ! git ls-remote --exit-code --tags origin "refs/tags/v$RELEASE_VERSION" >/dev/null 2>&1; then
-            git tag "v$RELEASE_VERSION"
-            git push origin "v$RELEASE_VERSION"
-          fi
-
       - name: Check whether npm version already exists
         id: registry
         env:
@@ -115,7 +99,38 @@ jobs:
         if: steps.registry.outputs.published != 'true'
         env:
           NPM_TAG: ${{ inputs.npm_tag }}
-        run: npm publish release/*.tgz --tag "$NPM_TAG" --access public --provenance
+        run: npm publish ./release/*.tgz --tag "$NPM_TAG" --access public --provenance
+
+      - name: Verify npm publication
+        if: steps.registry.outputs.published != 'true'
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          for attempt in {1..12}; do
+            published="$(npm view "@envoijs/http@$RELEASE_VERSION" version 2>/dev/null || true)"
+            if [ "$published" = "$RELEASE_VERSION" ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "npm did not expose @envoijs/http@$RELEASE_VERSION after publish" >&2
+          exit 1
+
+      - name: Commit version and push tag
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/http/package.json pnpm-lock.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): v$RELEASE_VERSION"
+            git push origin HEAD:main
+          fi
+          if ! git ls-remote --exit-code --tags origin "refs/tags/v$RELEASE_VERSION" >/dev/null 2>&1; then
+            git tag "v$RELEASE_VERSION"
+            git push origin "v$RELEASE_VERSION"
+          fi
 
       - name: Create GitHub release
         env:
