@@ -115,7 +115,7 @@ jobs:
         if: steps.registry.outputs.published != 'true'
         env:
           NPM_TAG: ${{ inputs.npm_tag }}
-        run: npm publish release/*.tgz --tag "$NPM_TAG" --access public --provenance
+        run: npm publish ./release/*.tgz --tag "$NPM_TAG" --access public --provenance
 
       - name: Create GitHub release
         env:
