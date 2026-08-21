@@ -2,7 +2,7 @@ import { withBase, withQuery } from "ufo";
 import { resolveAdapter } from "./adapters/resolve";
 import { errorFromEnvelope, resolveEnvelope } from "./envelope";
 import { normalizeHeaders } from "./headers";
-import { callHooks } from "./hooks";
+import { callHooks, callHooksSettled } from "./hooks";
 import type {
   Adapter,
   CallOptions,
@@ -11,6 +11,7 @@ import type {
   HttpClient,
   HttpRequest,
   HttpRequestOptions,
+  SuccessContext,
 } from "./types";
 
 function toRequest(
@@ -74,18 +75,19 @@ function applyTimeout(request: HttpRequest): (() => void) | undefined {
 }
 
 /**
- * Create a typed HTTP client.
+ * Create a typed HTTP client from an explicit transport and response policy.
  *
- * Default adapter is `'axios'` (pinned). Hooks match ofetch:
- * `onRequest` → adapter → `onResponse` / `onRequestError` / `onResponseError`.
- * Arrays run in order. Returns ignored.
- *
- * Stores are not imported. Pinia / Vuex / Jotai `await` the `Promise<T>`.
+ * No adapter or business envelope is selected implicitly. Lifecycle hooks run:
+ * `onRequest` → adapter → `onResponse` → policy →
+ * `onSuccess` / `onResponseError` → `onFinally`.
  */
 export function createHttp<TBody = unknown, TValue = unknown>(
-  options: CreateHttpOptions<TBody, TValue> = {},
+  options: CreateHttpOptions<TBody, TValue>,
 ): HttpClient {
-  const adapter: Adapter = resolveAdapter(options.adapter ?? "axios");
+  if (!options || options.adapter === undefined)
+    throw new Error("[envoi] createHttp requires an explicit adapter");
+
+  const adapter: Adapter = resolveAdapter(options.adapter);
   const hooks = options.hooks ?? {};
 
   async function dispatch<T>(
@@ -95,52 +97,108 @@ export function createHttp<TBody = unknown, TValue = unknown>(
   ): Promise<T> {
     const ctx: HookContext = { request: toRequest(url, callOptions, options.defaults) };
     const localHooks = callOptions.hooks ?? {};
-    await callHooks(ctx, hooks.onRequest);
-    await callHooks(ctx, localHooks.onRequest);
-    finalizeRequest(ctx.request, options.defaults);
 
-    const cleanupTimeout = applyTimeout(ctx.request);
-    try {
-      ctx.response = await adapter.request(ctx.request);
-    } catch (error) {
-      ctx.error = error;
-      const errorContext = ctx as HookContext & { error: unknown };
-      await callHooks(errorContext, hooks.onRequestError);
-      await callHooks(errorContext, localHooks.onRequestError);
-      throw error;
-    } finally {
-      cleanupTimeout?.();
+    async function resolveSuccess(
+      value: T,
+      response: NonNullable<HookContext["response"]>,
+    ): Promise<T> {
+      ctx.value = value;
+      const successContext = ctx as SuccessContext<T>;
+      successContext.response = response;
+      await callHooks(successContext, hooks.onSuccess);
+      await callHooks(successContext, localHooks.onSuccess);
+      return successContext.value;
     }
-    const responseContext = ctx as HookContext & {
-      response: NonNullable<HookContext["response"]>;
-    };
-    await callHooks(responseContext, hooks.onResponse);
-    if (!ctx.response) throw new Error("[envoi] global onResponse removed the response");
-    await callHooks(responseContext, localHooks.onResponse);
-    const response = ctx.response;
-    if (!response) throw new Error("[envoi] request onResponse removed the response");
-    const skipEnvelope =
-      mode === "raw" ||
-      ctx.request.meta.skipEnvelope === true ||
-      ctx.request.responseType === "blob";
-    const resolved = resolveEnvelope(response, skipEnvelope ? false : options.envelope);
 
-    const responseError = errorFromEnvelope(resolved);
-    if (responseError) {
-      ctx.error = responseError;
-      const errorContext = ctx as HookContext & {
-        response: typeof response;
-        error: Error;
+    async function execute(): Promise<T> {
+      await callHooks(ctx, hooks.onRequest);
+      await callHooks(ctx, localHooks.onRequest);
+      finalizeRequest(ctx.request, options.defaults);
+
+      const cleanupTimeout = applyTimeout(ctx.request);
+      try {
+        ctx.response = await adapter.request(ctx.request);
+      } catch (error) {
+        ctx.error = error;
+        const errorContext = ctx as HookContext & { error: unknown };
+        await callHooks(errorContext, hooks.onRequestError);
+        await callHooks(errorContext, localHooks.onRequestError);
+        throw errorContext.error;
+      } finally {
+        cleanupTimeout?.();
+      }
+
+      const responseContext = ctx as HookContext & {
+        response: NonNullable<HookContext["response"]>;
       };
-      await callHooks(errorContext, hooks.onResponseError);
-      await callHooks(errorContext, localHooks.onResponseError);
-      if (ctx.request.meta.ignoreResponseError !== true) throw responseError;
-      return (mode === "raw" ? response : resolved.body) as T;
+      await callHooks(responseContext, hooks.onResponse);
+      if (!ctx.response) throw new Error("[envoi] global onResponse removed the response");
+      await callHooks(responseContext, localHooks.onResponse);
+      const response = ctx.response;
+      if (!response) throw new Error("[envoi] request onResponse removed the response");
+
+      const skipEnvelope =
+        mode === "raw" ||
+        ctx.request.meta.skipEnvelope === true ||
+        ctx.request.responseType === "blob";
+      const resolved = resolveEnvelope(response, skipEnvelope ? false : options.envelope);
+      const responseError = errorFromEnvelope(resolved);
+
+      if (responseError) {
+        ctx.error = responseError;
+        const errorContext = ctx as HookContext & {
+          response: typeof response;
+          error: Error;
+        };
+        await callHooks(errorContext, hooks.onResponseError);
+        await callHooks(errorContext, localHooks.onResponseError);
+        if (ctx.request.meta.ignoreResponseError !== true) throw errorContext.error;
+        const ignoredValue = (mode === "raw" ? response : resolved.body) as T;
+        return resolveSuccess(ignoredValue, response);
+      }
+
+      if (skipEnvelope) {
+        const value = (mode === "raw" ? response : response.body) as T;
+        return resolveSuccess(value, response);
+      }
+
+      const value = (mode === "envelope" ? resolved.body : resolved.value) as T;
+      return resolveSuccess(value, response);
     }
 
-    if (skipEnvelope) return (mode === "raw" ? response : response.body) as T;
+    let failed = false;
+    let failure: unknown;
+    let result: T | undefined;
 
-    return (mode === "envelope" ? resolved.body : resolved.value) as T;
+    try {
+      result = await execute();
+    } catch (error) {
+      failed = true;
+      failure = error;
+      ctx.error = error;
+    }
+
+    const finalErrors = [
+      ...(await callHooksSettled(ctx, hooks.onFinally)),
+      ...(await callHooksSettled(ctx, localHooks.onFinally)),
+    ];
+
+    if (failed) {
+      if (finalErrors.length > 0) {
+        throw new AggregateError(
+          [failure, ...finalErrors],
+          "[envoi] request and onFinally hooks failed",
+          { cause: failure },
+        );
+      }
+      throw failure;
+    }
+
+    if (finalErrors.length === 1) throw finalErrors[0];
+    if (finalErrors.length > 1)
+      throw new AggregateError(finalErrors, "[envoi] onFinally hooks failed");
+
+    return result as T;
   }
 
   async function call<T>(url: string, callOptions: CallOptions = {}): Promise<T> {

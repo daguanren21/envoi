@@ -36,28 +36,43 @@ export interface HookContext {
   request: HttpRequest;
   response?: HttpResponse;
   error?: unknown;
+  value?: unknown;
+}
+
+export interface RequestErrorContext extends HookContext {
+  error: unknown;
+}
+
+export interface ResponseContext extends HookContext {
+  response: HttpResponse;
+}
+
+export interface ResponseErrorContext extends ResponseContext {
+  error: Error;
+}
+
+export interface SuccessContext<T = unknown> extends ResponseContext {
+  value: T;
 }
 
 /**
- * ofetch-shaped lifecycle hooks. Arrays run in order. Return values are ignored
- * (same as ofetch — a hook cannot replace the request by returning).
+ * Lifecycle hooks run sequentially in declaration order. Return values are
+ * ignored; mutate the typed context when customization is required.
  *
- * - `onRequest` — mutate `ctx.request` before the adapter
- * - `onRequestError` — adapter threw (network / abort)
- * - `onResponse` — adapter returned; mutate `ctx.response` (status, body, headers)
- * - `onResponseError` — receives the classified Error for HTTP or envelope failure
+ * - `onRequest` — before request normalization and adapter dispatch
+ * - `onRequestError` — adapter threw (network / abort / timeout)
+ * - `onResponse` — adapter returned, before response policy classification
+ * - `onResponseError` — HTTP or envelope policy classified a failure
+ * - `onSuccess` — final value selected, before the promise resolves
+ * - `onFinally` — once after every resolved or rejected request
  */
 export interface HttpHooks {
   onRequest?: Hook<HookContext> | Hook<HookContext>[];
-  onRequestError?:
-    | Hook<HookContext & { error: unknown }>
-    | Hook<HookContext & { error: unknown }>[];
-  onResponse?:
-    | Hook<HookContext & { response: HttpResponse }>
-    | Hook<HookContext & { response: HttpResponse }>[];
-  onResponseError?:
-    | Hook<HookContext & { response: HttpResponse; error: Error }>
-    | Hook<HookContext & { response: HttpResponse; error: Error }>[];
+  onRequestError?: Hook<RequestErrorContext> | Hook<RequestErrorContext>[];
+  onResponse?: Hook<ResponseContext> | Hook<ResponseContext>[];
+  onResponseError?: Hook<ResponseErrorContext> | Hook<ResponseErrorContext>[];
+  onSuccess?: Hook<SuccessContext> | Hook<SuccessContext>[];
+  onFinally?: Hook<HookContext> | Hook<HookContext>[];
 }
 
 /**
@@ -86,7 +101,7 @@ export interface EnvelopeMap extends EnvelopeKeys {
   warning?: (code: number | string) => boolean;
 }
 
-/** Default protocol body used by `envelope<TData>()`. */
+/** Standard `{ code, msg, data }` packet for an explicitly configured envelope. */
 export interface DefaultEnvelope<TData> {
   code: number | string;
   msg?: string;
@@ -105,19 +120,30 @@ export type EnvelopeOption<TBody = unknown, TValue = unknown> =
   | EnvelopeFns<TBody, TValue>
   | false;
 
+export interface HttpDefaults {
+  baseURL?: string;
+  timeout?: number;
+  headers?: Record<string, string>;
+}
+
 export interface CreateHttpOptions<TBody = unknown, TValue = unknown> {
-  /**
-   * Transport. Built-in: `'axios'` (default), `'fetch'`, `'ofetch'`.
-   * Pass `{ name, request }` for ky / got / mocks.
-   */
-  adapter?: AdapterOption;
-  defaults?: {
-    baseURL?: string;
-    timeout?: number;
-    headers?: Record<string, string>;
-  };
+  /** Explicit transport: a built-in name or a custom adapter object. */
+  adapter: AdapterOption;
+  defaults?: HttpDefaults;
+  /** Undefined and false both mean HTTP-only response handling. */
   envelope?: EnvelopeOption<TBody, TValue>;
   hooks?: HttpHooks;
+}
+
+export interface HttpClientOverrides<TBody = unknown, TValue = unknown> {
+  adapter?: AdapterOption;
+  defaults?: HttpDefaults;
+  envelope?: EnvelopeOption<TBody, TValue>;
+  hooks?: HttpHooks;
+}
+
+export interface HttpClientFactory<TBody = unknown, TValue = unknown> {
+  (overrides?: HttpClientOverrides<TBody, TValue>): HttpClient;
 }
 
 export interface CallOptions {
@@ -157,10 +183,7 @@ export interface HttpClient {
   put<T = unknown>(url: string, data?: unknown, options?: HttpRequestOptions): Promise<T>;
   patch<T = unknown>(url: string, data?: unknown, options?: HttpRequestOptions): Promise<T>;
   delete<T = unknown>(url: string, options?: HttpRequestOptions): Promise<T>;
-  envelope<TData = unknown, TEnvelope = DefaultEnvelope<TData>>(
-    url: string,
-    options?: HttpRequestOptions,
-  ): Promise<TEnvelope>;
+  envelope<TEnvelope = unknown>(url: string, options?: HttpRequestOptions): Promise<TEnvelope>;
   raw<T = unknown>(url: string, options?: HttpRequestOptions): Promise<HttpResponse<T>>;
   readonly adapter: Adapter;
 }

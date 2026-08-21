@@ -5,6 +5,7 @@ import {
   createHttp,
   createAxiosInstance,
   createMiddleware,
+  createHttpFactory,
   fetchAdapter,
   mergeMiddleware,
   ofetchAdapter,
@@ -19,11 +20,11 @@ interface User {
 }
 
 describe("public type contracts", () => {
-  it("types envelope<TData>() as the complete default packet", () => {
-    const http = createHttp();
+  it("types explicitly configured envelope packets", () => {
+    const http = createHttp({ adapter: "axios", envelope: {} });
 
     function assertTypes(): void {
-      const packet = http.envelope<User>("/users/1");
+      const packet = http.envelope<DefaultEnvelope<User>>("/users/1");
       expectTypeOf(packet).toEqualTypeOf<Promise<DefaultEnvelope<User>>>();
     }
 
@@ -46,8 +47,23 @@ describe("public type contracts", () => {
         expectTypeOf(ctx.response.status).toEqualTypeOf<number>();
         expectTypeOf(ctx.error).toMatchTypeOf<BizError | Error>();
       },
+      onSuccess: (ctx) => {
+        expectTypeOf(ctx.value).toEqualTypeOf<unknown>();
+        expectTypeOf(ctx.response.status).toEqualTypeOf<number>();
+      },
+      onFinally: (ctx) => {
+        expectTypeOf(ctx.error).toEqualTypeOf<unknown>();
+      },
     });
 
     expectTypeOf(mergeMiddleware(middleware, undefined)).toEqualTypeOf<HttpHooks>();
+  });
+
+  it("types project client factories", () => {
+    const createProjectHttp = createHttpFactory({
+      adapter: "fetch",
+      envelope: {},
+    });
+    expectTypeOf(createProjectHttp().adapter.name).toEqualTypeOf<string>();
   });
 });

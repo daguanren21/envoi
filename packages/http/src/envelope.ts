@@ -84,7 +84,7 @@ export function resolveEnvelope<TBody = unknown, TValue = unknown>(
   res: HttpResponse,
   option: EnvelopeOption<TBody, TValue> | undefined,
 ): ResolvedEnvelope {
-  if (option === false) return fromHttp(res, res.body);
+  if (option === false || option === undefined) return fromHttp(res, res.body);
 
   if (option && isFns(option)) {
     const body = option.read(res);
@@ -111,7 +111,7 @@ export function resolveEnvelope<TBody = unknown, TValue = unknown>(
       error,
     };
   }
-  return fromMap(res, option ?? {});
+  return fromMap(res, option);
 }
 
 export function errorFromEnvelope(resolved: ResolvedEnvelope): Error | undefined {

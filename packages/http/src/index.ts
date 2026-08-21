@@ -8,6 +8,7 @@ export {
 export { fetchAdapter, type FetchAdapterOptions } from "./adapters/fetch";
 export { ofetchAdapter, type OfetchAdapterOptions } from "./adapters/ofetch";
 export { createHttp } from "./create-http";
+export { createHttpFactory } from "./http-factory";
 export { defineEnvelope } from "./envelope";
 export { BizError, type ErrorSource, type ResultKind } from "./error";
 export { auth, legacyStringBody } from "./middleware";
@@ -18,6 +19,9 @@ export type {
   AdapterOption,
   CallOptions,
   CreateHttpOptions,
+  HttpClientFactory,
+  HttpClientOverrides,
+  HttpDefaults,
   DefaultEnvelope,
   EnvelopeFns,
   EnvelopeKeys,
@@ -25,6 +29,10 @@ export type {
   EnvelopeOption,
   Hook,
   HookContext,
+  RequestErrorContext,
+  ResponseContext,
+  ResponseErrorContext,
+  SuccessContext,
   HttpClient,
   HttpHooks,
   HttpRequest,

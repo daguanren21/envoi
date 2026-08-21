@@ -7,15 +7,20 @@ function res(status: number, body: unknown, statusText = ""): HttpResponse {
   return { status, statusText, body, headers: {} };
 }
 
-describe("resolveEnvelope default map", () => {
+describe("resolveEnvelope policies", () => {
   it("peels body.data when code is present and ok", () => {
-    const resolved = resolveEnvelope(
-      res(200, { code: 200, msg: "ok", data: { id: 1 } }),
-      undefined,
-    );
+    const resolved = resolveEnvelope(res(200, { code: 200, msg: "ok", data: { id: 1 } }), {});
     expect(resolved.kind).toBe("ok");
     expect(resolved.value).toEqual({ id: 1 });
     expect(resolved.body).toEqual({ code: 200, msg: "ok", data: { id: 1 } });
+  });
+
+  it("uses HTTP-only behavior when no envelope is configured", () => {
+    const body = { code: 500, msg: "business failure", data: { id: 1 } };
+    const resolved = resolveEnvelope(res(200, body), undefined);
+    expect(resolved.kind).toBe("ok");
+    expect(resolved.value).toBe(body);
+    expect(resolved.source).toBe("http");
   });
 
   it("does not peel .data when the body has no code key", () => {
@@ -45,7 +50,7 @@ describe("resolveEnvelope default map", () => {
   });
 
   it("maps envelope code 500 to BizError source body", () => {
-    const resolved = resolveEnvelope(res(200, { code: 500, msg: "boom", data: null }), undefined);
+    const resolved = resolveEnvelope(res(200, { code: 500, msg: "boom", data: null }), {});
     expect(resolved.kind).toBe("error");
     expect(resolved.source).toBe("body");
     expect(resolved.code).toBe(500);

@@ -10,21 +10,23 @@ function mockAdapter(handler: (req: HttpRequest) => HttpResponse | Promise<HttpR
 }
 
 describe("createHttp adapters", () => {
-  it("defaults adapter to axios", () => {
-    const http = createHttp();
-    expect(http.adapter.name).toBe("axios");
+  it("requires an explicit adapter", () => {
+    expect(() => createHttp({} as never)).toThrow(
+      "[envoi] createHttp requires an explicit adapter",
+    );
   });
 
-  it("accepts a custom adapter object", async () => {
+  it("accepts a custom adapter and returns its body by default", async () => {
+    const body = { code: 200, data: { id: 1 } };
     const http = createHttp({
       adapter: mockAdapter(() => ({
         status: 200,
         statusText: "OK",
         headers: {},
-        body: { code: 200, data: { id: 1 } },
+        body,
       })),
     });
-    await expect(http.get("/x")).resolves.toEqual({ id: 1 });
+    await expect(http.get("/x")).resolves.toEqual(body);
     expect(http.adapter.name).toBe("mock");
   });
 
@@ -117,6 +119,7 @@ describe("createHttp adapters", () => {
           ctx.response.body = { code: 200, data: 2 };
         },
       },
+      envelope: {},
     });
     await expect(http.get("/x")).resolves.toBe(2);
   });
@@ -139,12 +142,13 @@ describe("createHttp adapters", () => {
           };
         },
       },
+      envelope: {},
     });
 
     await expect(http.get("/x")).resolves.toBe(3);
   });
 
-  it("onResponseError runs on HTTP 404 when envelope is off", async () => {
+  it("onResponseError runs on HTTP 404 with the default HTTP-only policy", async () => {
     const statuses: number[] = [];
     const http = createHttp({
       adapter: mockAdapter(() => ({
@@ -153,7 +157,6 @@ describe("createHttp adapters", () => {
         headers: {},
         body: { path: "/x" },
       })),
-      envelope: false,
       hooks: {
         onResponseError: (ctx) => {
           statuses.push(ctx.response.status);

@@ -131,6 +131,7 @@ describe("axios adapter instance integration", () => {
     const http = createHttp({
       adapter: axiosAdapter(instance),
       defaults: { baseURL: "/api" },
+      envelope: {},
     });
 
     try {
