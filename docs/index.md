@@ -36,8 +36,9 @@ features:
 ## One client, three independent layers
 
 ```ts
+const instance = createAxiosInstance({ withCredentials: true });
 const http = createHttp({
-  adapter: axiosAdapter({ withCredentials: true }),
+  adapter: axiosAdapter(instance),
   defaults: { baseURL: "/api", timeout: 15_000 },
   envelope: { code: "code", msg: "msg", data: "data" },
   hooks: { onRequest: auth(getToken), onResponseError: showError },

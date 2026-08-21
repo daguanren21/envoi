@@ -87,11 +87,14 @@ interface HttpHooks {
 ## Adapters
 
 ```ts
+createAxiosInstance(options?: AxiosInstanceOptions): AxiosInstance
 axiosAdapter(options?: AxiosAdapterOptions): Adapter
 axiosAdapter(instance: AxiosInstance): Adapter
 fetchAdapter(options?): Adapter
 ofetchAdapter(options?): Adapter
 ```
+
+`AxiosInstance`, `AxiosInstanceOptions`, and `createAxiosInstance` are exported by envoi. Application code does not import axios directly.
 
 A custom adapter implements:
 

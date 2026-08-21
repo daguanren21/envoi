@@ -16,6 +16,8 @@ axios-mock-adapter ──┘      │
                           envoi
 ```
 
+`@envoijs/http` owns the axios runtime and exports `createAxiosInstance` plus `AxiosInstance`, so application code never imports axios directly. Install an ecosystem package only when using its section below; envoi does not bundle framework or mock tooling.
+
 ## `vue-axios`
 
 [`vue-axios`](https://github.com/imcvampire/vue-axios) binds axios to `axios` and `$http`. It does not change the response contract: legacy calls still resolve `AxiosResponse`.
@@ -24,44 +26,26 @@ axios-mock-adapter ──┘      │
 pnpm add vue-axios
 ```
 
-Create the shared clients once:
+The existing Vue plugin registration is the source of the axios instance. Add envoi immediately after the application's current `app.use(VueAxios, ...)` call:
 
 ```ts
-// src/api/http.ts
-import axios from "axios";
+// Vue application bootstrap, after the existing VueAxios registration
+import { inject, type InjectionKey } from "vue";
+import type { HttpClient } from "@envoijs/http";
 import { axiosAdapter, createHttp } from "@envoijs/http";
 
-// vue-axios 3.5.2 types this argument as AxiosStatic, so the default export
-// avoids a cast while still giving envoi the same AxiosInstance.
-export const axiosInstance = axios;
-axiosInstance.defaults.baseURL = "/api";
-axiosInstance.defaults.withCredentials = true;
-
-export const http = createHttp({
-  adapter: axiosAdapter(axiosInstance),
+const existingAxios = app.config.globalProperties.axios;
+const http = createHttp({
+  adapter: axiosAdapter(existingAxios),
   envelope: {
     code: "code",
     msg: "msg",
     data: "data",
   },
 });
-```
-
-Register both contracts under different keys:
-
-```ts
-// Vue application bootstrap
-import { createApp, inject, type InjectionKey } from "vue";
-import VueAxios from "vue-axios";
-import type { HttpClient } from "@envoijs/http";
-import { axiosInstance, http } from "./api/http";
 
 export const envoiHttpKey: InjectionKey<HttpClient> = Symbol("envoi-http");
-
-const app = createApp(App);
-app.use(VueAxios, axiosInstance); // existing this.$http / this.axios callers
-app.provide(envoiHttpKey, http); // new Promise<T> callers
-app.mount("#app");
+app.provide(envoiHttpKey, http);
 
 export function useHttp(): HttpClient {
   const client = inject(envoiHttpKey);
@@ -70,15 +54,17 @@ export function useHttp(): HttpClient {
 }
 ```
 
-Existing applications using `Vue.use` pass the same axios object:
+Existing `Vue.use` applications can bind envoi to the instance already exposed by the plugin:
 
 ```ts
-Vue.use(VueAxios, axiosInstance);
+const http = createHttp({
+  adapter: axiosAdapter(Vue.axios),
+});
 ```
 
 API modules can import `http` directly. Do not replace `$http` with envoi during migration: existing code may rely on `AxiosResponse`, axios config fields, or interceptor behavior.
 
-`vue-axios` runtime accepts custom registration maps, but its published 3.5.2 declaration only types the default `AxiosStatic` registration. Custom names or an `axios.create()` instance can require local module augmentation. This is a `vue-axios` typing boundary, not an envoi runtime restriction.
+`vue-axios` runtime accepts custom registration maps, but its published 3.5.2 declaration only types the default `AxiosStatic` registration. An existing custom `AxiosInstance` export or registration name can require local module augmentation. Do not create a second axios object just to satisfy that declaration.
 
 ## Mokup mock-server switching
 
@@ -89,30 +75,32 @@ pnpm add @mokup/client
 ```
 
 ```ts
-import axios from "axios";
+import { axiosAdapter, createHttp, type AxiosInstance } from "@envoijs/http";
 import { applyMokupToAxios } from "@mokup/client";
-import { axiosAdapter, createHttp } from "@envoijs/http";
 
-const instance = axios.create();
+export function enableMokup(instance: AxiosInstance) {
+  applyMokupToAxios(instance, {
+    resolverOptions: {
+      mockBase: "http://localhost:3300",
+      realBase: "https://api.example.com",
+      pathMap: [{ from: "/api/*", to: "/*" }],
+      markers: { header: true },
+    },
+  });
 
-applyMokupToAxios(instance, {
-  resolverOptions: {
-    mockBase: "http://localhost:3300",
-    realBase: "https://api.example.com",
-    pathMap: [{ from: "/api/*", to: "/*" }],
-    markers: { header: true },
-  },
-});
-
-export const http = createHttp({
-  adapter: axiosAdapter(instance),
-  defaults: { baseURL: "/api" },
-});
+  return createHttp({
+    adapter: axiosAdapter(instance),
+  });
+}
 ```
+
+Call `enableMokup()` with the same object already exposed by VueAxios or exported by the module that owns the instance. Existing `$http` calls then use the same Mokup routing; there is no second transport configuration to synchronize.
 
 Select the backend per request through native axios metadata:
 
 ```ts
+const http = enableMokup(app.config.globalProperties.axios);
+
 await http.get<User[]>("/users", {
   meta: { axios: { mock: true } },
 });
@@ -144,7 +132,7 @@ pnpm add -D axios-mock-adapter
 
 ```ts
 // src/api/mock.ts
-import type { AxiosInstance } from "axios";
+import type { AxiosInstance } from "@envoijs/http";
 
 export async function installAxiosMocks(instance: AxiosInstance) {
   const { default: AxiosMockAdapter } = await import("axios-mock-adapter");
@@ -163,20 +151,23 @@ export async function installAxiosMocks(instance: AxiosInstance) {
 }
 ```
 
-Install it before the first request, then give envoi the same instance:
+Install it on the project-owned instance before the first request:
 
 ```ts
-const instance = axios.create();
+import { axiosAdapter, createHttp, type AxiosInstance } from "@envoijs/http";
 
-if (import.meta.env.DEV) await installAxiosMocks(instance);
+export async function createMockedHttp(instance: AxiosInstance) {
+  if (import.meta.env.DEV) await installAxiosMocks(instance);
 
-export const http = createHttp({
-  adapter: axiosAdapter(instance),
-  defaults: { baseURL: "/api" },
-});
+  return createHttp({
+    adapter: axiosAdapter(instance),
+  });
+}
+
+const http = await createMockedHttp(app.config.globalProperties.axios);
 ```
 
-The mock handler matches envoi's final URL, including `defaults.baseURL`. Its response passes through the real axios adapter and envelope pipeline.
+The handler matches the URL produced by the existing instance, including its `defaults.baseURL`. `axios-mock-adapter` checks both `config.url` and `baseURL + url`. Its response then passes through the real axios adapter and envelope pipeline.
 
 | Mock reply                         | envoi result                      |
 | ---------------------------------- | --------------------------------- |

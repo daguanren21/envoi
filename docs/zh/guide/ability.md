@@ -10,7 +10,9 @@ interface AuthProfile {
   permissions: string[];
 }
 
-const getAuthProfile = (): Promise<AuthProfile> => http.get<AuthProfile>("/auth/profile");
+function getAuthProfile(): Promise<AuthProfile> {
+  return http.get<AuthProfile>("/auth/profile");
+}
 
 export async function refreshAuthorization(): Promise<AuthProfile> {
   const profile = await getAuthProfile();
@@ -18,6 +20,27 @@ export async function refreshAuthorization(): Promise<AuthProfile> {
   return profile;
 }
 ```
+
+## 在 session 生命周期中调用
+
+登录成功写入 session 后调用一次；应用启动时检测到已有 session，再调用一次：
+
+```ts
+export async function signIn(credentials: Credentials): Promise<AuthProfile> {
+  await createSession(credentials);
+  return refreshAuthorization();
+}
+
+export async function restoreSession(): Promise<void> {
+  if (!hasSession()) return;
+  await refreshAuthorization();
+}
+
+await restoreSession();
+mountApplication();
+```
+
+调用点属于 auth service。组件只读取更新后的 ability 状态，不在 render 过程中刷新权限。
 
 Pinia 或 Vuex 同时保存 profile 时，让一个 auth action 更新 store 和 ability，调用路径保持可见。
 

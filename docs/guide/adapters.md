@@ -4,26 +4,42 @@ An adapter executes the normalized request. envoi applies baseURL, serializes qu
 
 ## Axios
 
-Axios is the default and is owned by `@envoijs/http`.
+Axios is the default when an application has no existing HTTP client:
 
 ```ts
 const http = createHttp();
 ```
 
-Native axios settings use the typed factory:
+An existing application should pass the instance it already owns. The reusable bridge receives that instance; it does not import or create axios:
 
 ```ts
-import { axiosAdapter, createHttp } from "@envoijs/http";
+import { axiosAdapter, createHttp, type AxiosInstance } from "@envoijs/http";
 
-const http = createHttp({
-  adapter: axiosAdapter({
-    withCredentials: true,
-    xsrfCookieName: "XSRF-TOKEN",
-  }),
-  defaults: {
-    baseURL: "/api",
-    timeout: 15_000,
-  },
+export function createProjectHttp(instance: AxiosInstance) {
+  return createHttp({
+    adapter: axiosAdapter(instance),
+  });
+}
+```
+
+Call `createProjectHttp()` with the exact object the host application already gives to its interceptors, Vue plugin, or request wrapper. The instance keeps its baseURL, credentials, and native defaults.
+
+The value must be an actual `AxiosInstance` with `request`, `defaults`, and `interceptors`. If the existing module exports only a convenience function, export its underlying instance separately. Move configuration into `createHttp.defaults` only as a deliberate migration; do not configure the same field in both places.
+
+For a new application, install only envoi and create the shareable instance through its public factory:
+
+```ts
+import { axiosAdapter, createAxiosInstance, createHttp } from "@envoijs/http";
+
+const instance = createAxiosInstance({
+  baseURL: "/api",
+  timeout: 15_000,
+  withCredentials: true,
+  xsrfCookieName: "XSRF-TOKEN",
+});
+
+export const http = createHttp({
+  adapter: axiosAdapter(instance),
 });
 ```
 
@@ -32,26 +48,22 @@ const http = createHttp({
 Pass an existing `AxiosInstance` when a project already installs interceptors or a wrapper such as [`halo951/axios-plugins`](https://github.com/halo951/axios-plugins):
 
 ```ts
-import axios from "axios";
+import type { AxiosInstance } from "@envoijs/http";
 import { useAxiosPlugin } from "axios-plugins/core";
 import { merge } from "axios-plugins/plugins/merge";
 import { normalize } from "axios-plugins/plugins/normalize";
 import { axiosAdapter, createHttp } from "@envoijs/http";
 
-const instance = axios.create({ withCredentials: true });
+export function installProjectPlugins(instance: AxiosInstance) {
+  useAxiosPlugin(instance).plugin(normalize()).plugin(merge());
 
-useAxiosPlugin(instance).plugin(normalize()).plugin(merge());
-
-export const http = createHttp({
-  adapter: axiosAdapter(instance),
-  defaults: {
-    baseURL: "/api",
-    timeout: 15_000,
-  },
-});
+  return createHttp({
+    adapter: axiosAdapter(instance),
+  });
+}
 ```
 
-Register plugins before creating the envoi client. `axiosAdapter(instance)` calls `instance.request()`, so the plugin wrapper and existing interceptors remain active. `useAxiosPlugin(...).wrap()` is unnecessary because envoi never calls the instance as a function.
+Pass the project-owned instance into this function before the first request. envoi calls `instance.request()`, so its plugin wrapper and interceptors remain active. `useAxiosPlugin(...).wrap()` is unnecessary because envoi never calls the instance as a function.
 
 Per-request axios plugin fields go through the namespaced metadata escape hatch:
 

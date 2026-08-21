@@ -16,6 +16,8 @@ axios-mock-adapter ──┘      │
                           envoi
 ```
 
+`@envoijs/http` 自己维护 axios runtime，并导出 `createAxiosInstance` 和 `AxiosInstance`，应用代码无需直接 import axios。只有使用下面某项集成时才安装对应包；envoi 不会内置框架或 mock 工具。
+
 ## `vue-axios`
 
 [`vue-axios`](https://github.com/imcvampire/vue-axios) 只负责把 axios 注册成 `axios` 和 `$http`。旧调用仍然 resolve `AxiosResponse`。
@@ -24,44 +26,26 @@ axios-mock-adapter ──┘      │
 pnpm add vue-axios
 ```
 
-客户端只创建一次：
+现有 Vue plugin 注册已经暴露了 axios instance。在应用原有的 `app.use(VueAxios, ...)` 之后接入 envoi：
 
 ```ts
-// src/api/http.ts
-import axios from "axios";
+// Vue 应用入口，放在已有 VueAxios 注册之后
+import { inject, type InjectionKey } from "vue";
+import type { HttpClient } from "@envoijs/http";
 import { axiosAdapter, createHttp } from "@envoijs/http";
 
-// vue-axios 3.5.2 的参数类型是 AxiosStatic。使用默认导出可以避免类型断言，
-// envoi 仍然会收到同一个 AxiosInstance。
-export const axiosInstance = axios;
-axiosInstance.defaults.baseURL = "/api";
-axiosInstance.defaults.withCredentials = true;
-
-export const http = createHttp({
-  adapter: axiosAdapter(axiosInstance),
+const existingAxios = app.config.globalProperties.axios;
+const http = createHttp({
+  adapter: axiosAdapter(existingAxios),
   envelope: {
     code: "code",
     msg: "msg",
     data: "data",
   },
 });
-```
-
-旧 axios contract 和新 envoi contract 使用不同的注入 key：
-
-```ts
-// Vue 应用入口
-import { createApp, inject, type InjectionKey } from "vue";
-import VueAxios from "vue-axios";
-import type { HttpClient } from "@envoijs/http";
-import { axiosInstance, http } from "./api/http";
 
 export const envoiHttpKey: InjectionKey<HttpClient> = Symbol("envoi-http");
-
-const app = createApp(App);
-app.use(VueAxios, axiosInstance); // 现有 this.$http / this.axios
-app.provide(envoiHttpKey, http); // 新代码使用 Promise<T>
-app.mount("#app");
+app.provide(envoiHttpKey, http);
 
 export function useHttp(): HttpClient {
   const client = inject(envoiHttpKey);
@@ -70,15 +54,17 @@ export function useHttp(): HttpClient {
 }
 ```
 
-已有 `Vue.use` 入口传入同一个 axios 对象：
+已有 `Vue.use` 应用可以直接使用 plugin 已经暴露的 instance：
 
 ```ts
-Vue.use(VueAxios, axiosInstance);
+const http = createHttp({
+  adapter: axiosAdapter(Vue.axios),
+});
 ```
 
 API 模块也可以直接 import `http`。迁移期间不要把 `$http` 替换成 envoi，旧代码可能读取 `AxiosResponse`、axios config 或 interceptor 结果。
 
-`vue-axios` runtime 支持自定义注册表，但 3.5.2 发布的声明只覆盖默认 `AxiosStatic` 和 `axios/$http`。使用自定义名称或 `axios.create()` 时，项目可能需要补 module augmentation。这个限制来自 `vue-axios` 类型声明，envoi runtime 可以接收 `AxiosInstance`。
+`vue-axios` runtime 支持自定义注册表，但 3.5.2 发布的声明只覆盖默认 `AxiosStatic` 和 `axios/$http`。项目原有的自定义 `AxiosInstance` 导出或注册名称可能需要补 module augmentation。不要为了满足这份声明再创建一个 axios 对象。
 
 ## 用 Mokup 切换 Mock Server
 
@@ -89,30 +75,32 @@ pnpm add @mokup/client
 ```
 
 ```ts
-import axios from "axios";
+import { axiosAdapter, createHttp, type AxiosInstance } from "@envoijs/http";
 import { applyMokupToAxios } from "@mokup/client";
-import { axiosAdapter, createHttp } from "@envoijs/http";
 
-const instance = axios.create();
+export function enableMokup(instance: AxiosInstance) {
+  applyMokupToAxios(instance, {
+    resolverOptions: {
+      mockBase: "http://localhost:3300",
+      realBase: "https://api.example.com",
+      pathMap: [{ from: "/api/*", to: "/*" }],
+      markers: { header: true },
+    },
+  });
 
-applyMokupToAxios(instance, {
-  resolverOptions: {
-    mockBase: "http://localhost:3300",
-    realBase: "https://api.example.com",
-    pathMap: [{ from: "/api/*", to: "/*" }],
-    markers: { header: true },
-  },
-});
-
-export const http = createHttp({
-  adapter: axiosAdapter(instance),
-  defaults: { baseURL: "/api" },
-});
+  return createHttp({
+    adapter: axiosAdapter(instance),
+  });
+}
 ```
+
+调用 `enableMokup()` 时，传入 VueAxios 已经暴露的对象，或创建 instance 的模块明确导出的对象。旧 `$http` 会使用同一套 Mokup 路由，不需要维护第二份 transport 配置。
 
 单请求选择 mock 或 real：
 
 ```ts
+const http = enableMokup(app.config.globalProperties.axios);
+
 await http.get<User[]>("/users", {
   meta: { axios: { mock: true } },
 });
@@ -144,7 +132,7 @@ pnpm add -D axios-mock-adapter
 
 ```ts
 // src/api/mock.ts
-import type { AxiosInstance } from "axios";
+import type { AxiosInstance } from "@envoijs/http";
 
 export async function installAxiosMocks(instance: AxiosInstance) {
   const { default: AxiosMockAdapter } = await import("axios-mock-adapter");
@@ -163,20 +151,23 @@ export async function installAxiosMocks(instance: AxiosInstance) {
 }
 ```
 
-第一次请求发出前完成安装，envoi 使用同一个 instance：
+第一次请求发出前，把项目原有 instance 传进来：
 
 ```ts
-const instance = axios.create();
+import { axiosAdapter, createHttp, type AxiosInstance } from "@envoijs/http";
 
-if (import.meta.env.DEV) await installAxiosMocks(instance);
+export async function createMockedHttp(instance: AxiosInstance) {
+  if (import.meta.env.DEV) await installAxiosMocks(instance);
 
-export const http = createHttp({
-  adapter: axiosAdapter(instance),
-  defaults: { baseURL: "/api" },
-});
+  return createHttp({
+    adapter: axiosAdapter(instance),
+  });
+}
+
+const http = await createMockedHttp(app.config.globalProperties.axios);
 ```
 
-handler 匹配 envoi 已经拼好的最终 URL，包含 `defaults.baseURL`。mock response 会经过真实 axios adapter 和 envelope pipeline。
+handler 匹配原 instance 生成的 URL，包括它自己的 `defaults.baseURL`。`axios-mock-adapter` 会同时检查 `config.url` 和 `baseURL + url`。mock response 随后经过真实 axios adapter 和 envelope pipeline。
 
 | Mock 返回                          | envoi 结果                    |
 | ---------------------------------- | ----------------------------- |

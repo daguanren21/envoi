@@ -4,24 +4,42 @@ Adapter 执行规范化后的请求。进入 adapter 前，envoi 已经处理 ba
 
 ## Axios
 
-默认 adapter 使用 `@envoijs/http` 维护的 axios 版本。
+项目没有现成 HTTP 客户端时，可以直接使用默认 axios adapter：
 
 ```ts
 const http = createHttp();
 ```
 
-axios 原生选项通过带类型的 factory 配置：
+已有项目应把自己持有的 instance 传进来。bridge 只接收 instance，不重新 import 或创建 axios：
 
 ```ts
-const http = createHttp({
-  adapter: axiosAdapter({
-    withCredentials: true,
-    xsrfCookieName: "XSRF-TOKEN",
-  }),
-  defaults: {
-    baseURL: "/api",
-    timeout: 15_000,
-  },
+import { axiosAdapter, createHttp, type AxiosInstance } from "@envoijs/http";
+
+export function createProjectHttp(instance: AxiosInstance) {
+  return createHttp({
+    adapter: axiosAdapter(instance),
+  });
+}
+```
+
+调用 `createProjectHttp()` 时，传入宿主应用已经交给 interceptors、Vue plugin 或 request wrapper 的同一个对象。原 instance 的 baseURL、credentials 和 native defaults 会继续生效。
+
+这个值必须是带有 `request`、`defaults` 和 `interceptors` 的真实 `AxiosInstance`。现有模块只导出二次包装函数时，需要额外导出内部 instance。只有明确迁移配置归属时才把字段移到 `createHttp.defaults`，不要在两处重复配置。
+
+新项目只安装 envoi，通过它公开的 factory 创建可共享 instance：
+
+```ts
+import { axiosAdapter, createAxiosInstance, createHttp } from "@envoijs/http";
+
+const instance = createAxiosInstance({
+  baseURL: "/api",
+  timeout: 15_000,
+  withCredentials: true,
+  xsrfCookieName: "XSRF-TOKEN",
+});
+
+export const http = createHttp({
+  adapter: axiosAdapter(instance),
 });
 ```
 
@@ -30,26 +48,22 @@ const http = createHttp({
 项目已经安装 interceptors 或 [`halo951/axios-plugins`](https://github.com/halo951/axios-plugins) 时，把同一个 `AxiosInstance` 交给 adapter：
 
 ```ts
-import axios from "axios";
+import type { AxiosInstance } from "@envoijs/http";
 import { useAxiosPlugin } from "axios-plugins/core";
 import { merge } from "axios-plugins/plugins/merge";
 import { normalize } from "axios-plugins/plugins/normalize";
 import { axiosAdapter, createHttp } from "@envoijs/http";
 
-const instance = axios.create({ withCredentials: true });
+export function installProjectPlugins(instance: AxiosInstance) {
+  useAxiosPlugin(instance).plugin(normalize()).plugin(merge());
 
-useAxiosPlugin(instance).plugin(normalize()).plugin(merge());
-
-export const http = createHttp({
-  adapter: axiosAdapter(instance),
-  defaults: {
-    baseURL: "/api",
-    timeout: 15_000,
-  },
-});
+  return createHttp({
+    adapter: axiosAdapter(instance),
+  });
+}
 ```
 
-插件需要在创建 envoi client 前注册。`axiosAdapter(instance)` 调用 `instance.request()`，插件 wrapper 和原有 interceptors 都会执行。envoi 不会把 instance 当函数调用，因此不需要 `useAxiosPlugin(...).wrap()`。
+第一次请求发出前，把项目原有 instance 传给这个函数。envoi 调用 `instance.request()`，plugin wrapper 和 interceptors 都会执行。envoi 不会把 instance 当函数调用，因此不需要 `useAxiosPlugin(...).wrap()`。
 
 单请求 plugin 参数放进带命名空间的 metadata：
 

@@ -9,6 +9,8 @@ A typed HTTP client that turns transport responses and backend envelopes into a 
 
 ESM-only. Supports Node.js 18+ and browsers with the selected adapter's required APIs.
 
+Axios is included as a runtime dependency. Application code uses `createAxiosInstance()` and `AxiosInstance` from `@envoijs/http` instead of importing axios.
+
 ```bash
 pnpm add @envoijs/http
 ```
@@ -118,10 +120,11 @@ createHttp({ adapter: "fetch" });
 createHttp({ adapter: "ofetch" });
 ```
 
-Native options use typed factories:
+Create a shareable axios instance without importing axios in application code:
 
 ```ts
-createHttp({ adapter: axiosAdapter({ withCredentials: true }) });
+const instance = createAxiosInstance({ withCredentials: true });
+createHttp({ adapter: axiosAdapter(instance) });
 createHttp({ adapter: fetchAdapter({ init: { credentials: "include" } }) });
 createHttp({ adapter: ofetchAdapter({ retry: 2 }) });
 ```
@@ -129,12 +132,10 @@ createHttp({ adapter: ofetchAdapter({ retry: 2 }) });
 An existing `AxiosInstance` keeps its interceptors and wrappers:
 
 ```ts
-useAxiosPlugin(instance).plugin(merge());
-const http = createHttp({ adapter: axiosAdapter(instance) });
-
-await http.get("/orders", {
-  meta: { axios: { merge: true } },
-});
+function attachEnvoi(instance: AxiosInstance) {
+  useAxiosPlugin(instance).plugin(merge());
+  return createHttp({ adapter: axiosAdapter(instance) });
+}
 ```
 
 The [adapter guide](https://daguanren21.github.io/envoi/guide/adapters#existing-axios-instances-and-axios-plugins) documents plugin compatibility boundaries.

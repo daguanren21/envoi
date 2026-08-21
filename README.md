@@ -55,6 +55,8 @@ A project that only needs a few plain HTTP calls and has no shared response prot
 
 Axios is the default adapter.
 
+Axios is a runtime dependency of envoi. Application code does not install or import it separately; use `createAxiosInstance()` when an external plugin needs the shared instance.
+
 ```ts
 import { createHttp } from "@envoijs/http";
 
@@ -258,14 +260,19 @@ createHttp({ adapter: "fetch" });
 createHttp({ adapter: "ofetch" }); // optional peer
 ```
 
-Common baseURL, headers, and timeout belong to `createHttp.defaults`. Native adapter settings use typed factories.
+Adapter-neutral baseURL, headers, and timeout can stay in `createHttp.defaults`. A shareable axios instance comes from envoi's public factory:
 
 ```ts
-import { axiosAdapter, createHttp, fetchAdapter, ofetchAdapter } from "@envoijs/http";
+import {
+  axiosAdapter,
+  createAxiosInstance,
+  createHttp,
+  fetchAdapter,
+  ofetchAdapter,
+} from "@envoijs/http";
 
-createHttp({
-  adapter: axiosAdapter({ withCredentials: true }),
-});
+const axiosInstance = createAxiosInstance({ withCredentials: true });
+createHttp({ adapter: axiosAdapter(axiosInstance) });
 
 createHttp({
   adapter: fetchAdapter({ init: { credentials: "include" } }),
@@ -276,19 +283,17 @@ createHttp({
 });
 ```
 
-Existing axios instances keep their interceptors and wrappers:
+Existing axios instances keep their interceptors and wrappers. Pass the object from the module or framework registration that already owns it:
 
 ```ts
-const instance = axios.create();
-useAxiosPlugin(instance).plugin(merge());
+import type { AxiosInstance } from "@envoijs/http";
 
-const http = createHttp({
-  adapter: axiosAdapter(instance),
-});
-
-await http.get("/orders", {
-  meta: { axios: { merge: true } },
-});
+export function attachEnvoi(instance: AxiosInstance) {
+  useAxiosPlugin(instance).plugin(merge());
+  return createHttp({
+    adapter: axiosAdapter(instance),
+  });
+}
 ```
 
 See [axios plugin integration](https://daguanren21.github.io/envoi/guide/adapters#existing-axios-instances-and-axios-plugins) for ordering, retry, transform, and response-contract boundaries.
@@ -365,13 +370,26 @@ interface AuthProfile {
   permissions: string[];
 }
 
-const getAuthProfile = (): Promise<AuthProfile> => http.get<AuthProfile>("/auth/profile");
+function getAuthProfile(): Promise<AuthProfile> {
+  return http.get<AuthProfile>("/auth/profile");
+}
 
 async function refreshAuthorization(): Promise<AuthProfile> {
   const profile = await getAuthProfile();
   ability.update(profile);
   return profile;
 }
+
+async function signIn(credentials: Credentials): Promise<AuthProfile> {
+  await createSession(credentials);
+  return refreshAuthorization();
+}
+
+async function restoreSession(): Promise<void> {
+  if (hasSession()) await refreshAuthorization();
+}
+
+await restoreSession();
 
 function logout(): void {
   ability.reset();

@@ -28,21 +28,22 @@ createHttp({ adapter: "fetch" });
 createHttp({ adapter: "ofetch" });
 ```
 
-Native options use factories:
+Application code MUST use envoi's public factory and types instead of importing its transitive axios dependency:
 
 ```ts
-axiosAdapter({ withCredentials: true });
-fetchAdapter({ init: { credentials: "include" } });
-ofetchAdapter({ retry: 2, retryDelay: 250 });
+const instance = createAxiosInstance({ withCredentials: true });
+createHttp({ adapter: axiosAdapter(instance) });
 ```
 
-Common baseURL/headers/timeout stay in `createHttp.defaults`.
+Common baseURL/headers/timeout may stay in `createHttp.defaults`. Put them on the shared instance only when legacy raw-axios callers need the same defaults.
 
 Existing axios interceptors and wrappers MUST use the same instance:
 
 ```ts
 createHttp({ adapter: axiosAdapter(instance) });
 ```
+
+The value MUST be the actual `AxiosInstance`, not a convenience wrapper function. Generic bridges import `type AxiosInstance` from `@envoijs/http`.
 
 Register plugins before creating the envoi client. Pass per-request native/plugin fields through `meta.axios`. Response plugins MUST preserve the complete `AxiosResponse`; envelope extraction remains in envoi.
 

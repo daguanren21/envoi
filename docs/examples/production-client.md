@@ -57,15 +57,17 @@ export const responseMiddleware = createMiddleware({
 
 ```ts
 // src/api/http.ts
-import { axiosAdapter, createHttp, mergeMiddleware } from "@envoijs/http";
+import { axiosAdapter, createAxiosInstance, createHttp, mergeMiddleware } from "@envoijs/http";
 import { ApiCode } from "./contracts";
 import { requestMiddleware, responseMiddleware } from "./middleware";
 
+const instance = createAxiosInstance({
+  withCredentials: true,
+  xsrfCookieName: "XSRF-TOKEN",
+});
+
 export const http = createHttp({
-  adapter: axiosAdapter({
-    withCredentials: true,
-    xsrfCookieName: "XSRF-TOKEN",
-  }),
+  adapter: axiosAdapter(instance),
   defaults: {
     baseURL: "/api",
     timeout: 20_000,

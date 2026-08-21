@@ -55,6 +55,8 @@ query cache 收到 `User`，HTTP 错误和业务错误都会 reject。
 
 默认 adapter 是 axios。
 
+axios 是 envoi 的 runtime dependency。应用代码无需单独安装或 import；外部 plugin 需要共享 instance 时使用 `createAxiosInstance()`。
+
 ```ts
 import { createHttp } from "@envoijs/http";
 
@@ -258,14 +260,19 @@ createHttp({ adapter: "fetch" });
 createHttp({ adapter: "ofetch" }); // optional peer
 ```
 
-baseURL、公共 headers 和 timeout 放在 `createHttp.defaults`。各 transport 的原生选项通过带类型的 factory 配置。
+adapter-neutral 的 baseURL、headers 和 timeout 可以放在 `createHttp.defaults`。需要共享的 axios instance 通过 envoi 公共 factory 创建：
 
 ```ts
-import { axiosAdapter, createHttp, fetchAdapter, ofetchAdapter } from "@envoijs/http";
+import {
+  axiosAdapter,
+  createAxiosInstance,
+  createHttp,
+  fetchAdapter,
+  ofetchAdapter,
+} from "@envoijs/http";
 
-createHttp({
-  adapter: axiosAdapter({ withCredentials: true }),
-});
+const axiosInstance = createAxiosInstance({ withCredentials: true });
+createHttp({ adapter: axiosAdapter(axiosInstance) });
 
 createHttp({
   adapter: fetchAdapter({ init: { credentials: "include" } }),
@@ -276,19 +283,17 @@ createHttp({
 });
 ```
 
-已有 axios instance 可以保留 interceptors 和插件 wrapper：
+现有 axios instance 会保留 interceptors 和 plugin wrapper。从创建它的模块或现有框架注册处传入，不再新建：
 
 ```ts
-const instance = axios.create();
-useAxiosPlugin(instance).plugin(merge());
+import type { AxiosInstance } from "@envoijs/http";
 
-const http = createHttp({
-  adapter: axiosAdapter(instance),
-});
-
-await http.get("/orders", {
-  meta: { axios: { merge: true } },
-});
+export function attachEnvoi(instance: AxiosInstance) {
+  useAxiosPlugin(instance).plugin(merge());
+  return createHttp({
+    adapter: axiosAdapter(instance),
+  });
+}
 ```
 
 注册顺序、retry、transform 和 response contract 的边界见 [axios plugin 接入说明](https://daguanren21.github.io/envoi/zh/guide/adapters#接入现有-axios-instance-与-axios-plugins)。
@@ -365,13 +370,26 @@ interface AuthProfile {
   permissions: string[];
 }
 
-const getAuthProfile = (): Promise<AuthProfile> => http.get<AuthProfile>("/auth/profile");
+function getAuthProfile(): Promise<AuthProfile> {
+  return http.get<AuthProfile>("/auth/profile");
+}
 
 async function refreshAuthorization(): Promise<AuthProfile> {
   const profile = await getAuthProfile();
   ability.update(profile);
   return profile;
 }
+
+async function signIn(credentials: Credentials): Promise<AuthProfile> {
+  await createSession(credentials);
+  return refreshAuthorization();
+}
+
+async function restoreSession(): Promise<void> {
+  if (hasSession()) await refreshAuthorization();
+}
+
+await restoreSession();
 
 function logout(): void {
   ability.reset();

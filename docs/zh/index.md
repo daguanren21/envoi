@@ -36,8 +36,9 @@ features:
 ## 一个客户端，三层职责
 
 ```ts
+const instance = createAxiosInstance({ withCredentials: true });
 const http = createHttp({
-  adapter: axiosAdapter({ withCredentials: true }),
+  adapter: axiosAdapter(instance),
   defaults: { baseURL: "/api", timeout: 15_000 },
   envelope: { code: "code", msg: "msg", data: "data" },
   hooks: { onRequest: auth(getToken), onResponseError: showError },

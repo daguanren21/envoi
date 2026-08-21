@@ -10,7 +10,9 @@ interface AuthProfile {
   permissions: string[];
 }
 
-const getAuthProfile = (): Promise<AuthProfile> => http.get<AuthProfile>("/auth/profile");
+function getAuthProfile(): Promise<AuthProfile> {
+  return http.get<AuthProfile>("/auth/profile");
+}
 
 export async function refreshAuthorization(): Promise<AuthProfile> {
   const profile = await getAuthProfile();
@@ -18,6 +20,27 @@ export async function refreshAuthorization(): Promise<AuthProfile> {
   return profile;
 }
 ```
+
+## Call it from the session lifecycle
+
+Call the refresh after login creates a session and during application startup when a persisted session exists:
+
+```ts
+export async function signIn(credentials: Credentials): Promise<AuthProfile> {
+  await createSession(credentials);
+  return refreshAuthorization();
+}
+
+export async function restoreSession(): Promise<void> {
+  if (!hasSession()) return;
+  await refreshAuthorization();
+}
+
+await restoreSession();
+mountApplication();
+```
+
+The auth service owns these calls. Components consume the updated ability state; they do not refresh authorization while rendering.
 
 If Pinia or Vuex also stores the auth profile, one auth action should update both the store and the ability instance.
 

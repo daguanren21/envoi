@@ -87,11 +87,14 @@ interface HttpHooks {
 ## Adapters
 
 ```ts
+createAxiosInstance(options?: AxiosInstanceOptions): AxiosInstance
 axiosAdapter(options?: AxiosAdapterOptions): Adapter
 axiosAdapter(instance: AxiosInstance): Adapter
 fetchAdapter(options?): Adapter
 ofetchAdapter(options?): Adapter
 ```
+
+envoi 会导出 `AxiosInstance`、`AxiosInstanceOptions` 和 `createAxiosInstance`，应用代码无需直接 import axios。
 
 自定义 adapter：
 

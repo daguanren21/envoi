@@ -25,13 +25,15 @@ Classify the requested behavior before writing code:
 
 ## Create the client
 
-Axios is the default. Common settings belong to `defaults`; native settings belong to the typed adapter factory.
+Axios is the default. Application code creates a shareable instance through envoi's public factory instead of importing axios directly.
 
 ```ts
-import { axiosAdapter, createHttp } from "@envoijs/http";
+import { axiosAdapter, createAxiosInstance, createHttp } from "@envoijs/http";
+
+const instance = createAxiosInstance({ withCredentials: true });
 
 export const http = createHttp({
-  adapter: axiosAdapter({ withCredentials: true }),
+  adapter: axiosAdapter(instance),
   defaults: {
     baseURL: "/api",
     timeout: 15_000,
