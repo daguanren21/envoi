@@ -86,10 +86,11 @@ const text = computed(() =>
 const scenarios: Scenario[] = [
   {
     key: "success",
-    label: { en: "Default success", zh: "默认成功" },
+    label: { en: "Envelope success", zh: "Envelope 成功" },
     status: 200,
     statusText: "OK",
     body: { code: 200, msg: "ok", data: { id: 42, name: "Ada" } },
+    envelope: {},
   },
   {
     key: "business-error",
@@ -97,6 +98,7 @@ const scenarios: Scenario[] = [
     status: 200,
     statusText: "OK",
     body: { code: 42_201, msg: "Plan limit reached", data: null },
+    envelope: {},
   },
   {
     key: "http-only",
@@ -104,7 +106,6 @@ const scenarios: Scenario[] = [
     status: 200,
     statusText: "OK",
     body: { id: 42, name: "Ada" },
-    envelope: false,
   },
   {
     key: "renamed",
@@ -125,6 +126,7 @@ const scenarios: Scenario[] = [
     status: 503,
     statusText: "Service Unavailable",
     body: { code: 200, msg: "stale success code", data: { id: 42, name: "Ada" } },
+    envelope: {},
   },
 ];
 
@@ -152,7 +154,7 @@ const outcomeStatus = computed(() => {
   return text.value.ready;
 });
 const outcomeType = computed(() => {
-  if (running.value) return "createHttp()";
+  if (running.value) return "createHttp(...)";
   return outcome.value?.type ?? "—";
 });
 const outcomeText = computed(() => {

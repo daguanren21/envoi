@@ -36,6 +36,7 @@ const enTheme: DefaultTheme.Config = {
       text: "Start",
       items: [
         { text: "Getting started", link: "/guide/getting-started" },
+        { text: "Project policies", link: "/guide/project-policies" },
         { text: "Protocol lab", link: "/demo" },
         { text: "Production client", link: "/examples/production-client" },
       ],
@@ -95,6 +96,7 @@ const zhTheme: DefaultTheme.Config = {
       text: "开始",
       items: [
         { text: "快速开始", link: "/zh/guide/getting-started" },
+        { text: "项目默认策略", link: "/zh/guide/project-policies" },
         { text: "协议实验台", link: "/zh/demo" },
         { text: "生产客户端案例", link: "/zh/examples/production-client" },
       ],

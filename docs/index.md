@@ -24,7 +24,7 @@ features:
   - title: Normalize once
     details: Move HTTP status, business codes, renamed fields, and custom errors into one typed response contract.
   - title: Keep transport portable
-    details: Axios is the default. Fetch, ofetch, and custom adapters receive the same normalized request.
+    details: No transport is implicit. Axios, fetch, ofetch, and custom adapters receive the same normalized request.
   - title: Debug explicitly
     details: Hooks expose lifecycle behavior; raw keeps status, headers, blobs, and the underlying response available.
 ---
@@ -33,7 +33,7 @@ features:
 
 <div class="envoi-home-section">
 
-## One client, three independent layers
+## One client, four explicit layers
 
 ```ts
 const instance = createAxiosInstance({ withCredentials: true });
@@ -47,7 +47,7 @@ const http = createHttp({
 
 <RequestFlow />
 
-The adapter executes HTTP. Hooks handle cross-cutting lifecycle behavior. The envelope maps the backend protocol to `T`. None of those layers owns application state.
+Request hooks prepare the call, the adapter executes HTTP, and the selected response policy produces `Promise<T>`. Application state stays with the caller.
 
 ## Production paths, not isolated snippets
 
@@ -60,7 +60,7 @@ The adapter executes HTTP. Hooks handle cross-cutting lifecycle behavior. The en
   <a href="./guide/envelopes">
     <span>02 / Protocol</span>
     <strong>Model the response contract</strong>
-    <p>Default envelope, HTTP-only services, renamed fields, custom errors, and expected failure bodies.</p>
+    <p>HTTP-only defaults, explicit envelopes, renamed fields, custom errors, and expected failure bodies.</p>
   </a>
   <a href="./guide/adapters">
     <span>03 / Transport</span>

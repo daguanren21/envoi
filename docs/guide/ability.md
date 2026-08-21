@@ -57,6 +57,7 @@ A globally observed HTTP 401 can reset the ability because session expiry is cro
 
 ```ts
 const http = createHttp({
+  adapter: "fetch",
   hooks: {
     onResponseError: (ctx) => {
       if (ctx.response.status === 401) ability.reset();

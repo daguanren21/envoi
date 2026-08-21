@@ -14,31 +14,37 @@ const text = computed(() =>
         request: "修改标准化前的 request",
         adapter: "执行 transport",
         response: "修改解析后的 response",
-        envelope: "判断 HTTP 与业务状态",
+        envelope: "执行项目 response policy",
         fromAdapter: "从 adapter 分支",
         transportFailure: "transport 抛错",
-        requestFailureNote: "onRequestError 收到 adapter 的原始 error，随后抛出同一个 error。",
-        fromEnvelope: "从 envelope 分支",
+        requestFailureNote: "onRequestError 收到原始 error，可以在 reject 前替换 ctx.error。",
+        fromEnvelope: "从 response policy 分支",
         success: "成功",
         failure: "失败",
         responseFailureNote:
-          "non-ok 先生成分类后的 error，onResponseError 收到该 error，随后默认抛出同一个 error。",
+          "non-ok 生成分类后的 error，onResponseError 可以在 reject 前替换 ctx.error。",
+        everyPath: "所有路径",
+        finallyNote:
+          "onFinally 在 resolve 和 reject 路径都执行。请求和 cleanup 同时失败时返回 AggregateError。",
       }
     : {
         main: "Normal response path",
         request: "mutate the request before normalization",
         adapter: "execute the transport",
         response: "mutate the parsed response",
-        envelope: "classify HTTP and business status",
+        envelope: "apply the project response policy",
         fromAdapter: "branch from adapter",
         transportFailure: "transport throws",
         requestFailureNote:
-          "onRequestError receives the adapter's original error, then the same error is thrown.",
-        fromEnvelope: "branch from envelope",
+          "onRequestError receives the original error and may replace ctx.error before rejection.",
+        fromEnvelope: "branch from response policy",
         success: "success",
         failure: "failure",
         responseFailureNote:
-          "A non-ok result creates the classified error. onResponseError receives it, then the same error is thrown by default.",
+          "A non-ok result creates the classified error. onResponseError may replace ctx.error before rejection.",
+        everyPath: "every path",
+        finallyNote:
+          "onFinally runs for resolved and rejected requests. Request plus cleanup failures produce AggregateError.",
       },
 );
 </script>
@@ -64,7 +70,7 @@ const text = computed(() =>
       </div>
       <span class="lifecycle-flow__arrow" aria-hidden="true">→</span>
       <div class="lifecycle-flow__stage is-envelope">
-        <code>envelope</code>
+        <code>policy</code>
         <small>{{ text.envelope }}</small>
       </div>
     </div>
@@ -78,7 +84,7 @@ const text = computed(() =>
         <div class="lifecycle-flow__chain">
           <code>onRequestError(ctx.error)</code>
           <span aria-hidden="true">→</span>
-          <code>throw</code>
+          <code>reject</code>
         </div>
         <p>{{ text.requestFailureNote }}</p>
       </article>
@@ -92,7 +98,9 @@ const text = computed(() =>
           <span>{{ text.success }}</span>
           <code>kind: ok</code>
           <span aria-hidden="true">→</span>
-          <code>T</code>
+          <code>onSuccess(ctx.value)</code>
+          <span aria-hidden="true">→</span>
+          <code>resolve</code>
         </div>
         <div class="lifecycle-flow__path is-failure">
           <span>{{ text.failure }}</span>
@@ -100,9 +108,24 @@ const text = computed(() =>
           <span aria-hidden="true">→</span>
           <code>onResponseError(ctx.error)</code>
           <span aria-hidden="true">→</span>
-          <code>throw</code>
+          <code>reject</code>
         </div>
         <p>{{ text.responseFailureNote }}</p>
+      </article>
+
+      <article class="lifecycle-flow__branch is-finally">
+        <header>
+          <span>{{ text.everyPath }}</span>
+          <strong>onFinally(ctx)</strong>
+        </header>
+        <div class="lifecycle-flow__chain">
+          <code>resolve | reject</code>
+          <span aria-hidden="true">→</span>
+          <code>onFinally(ctx)</code>
+          <span aria-hidden="true">→</span>
+          <code>settle Promise</code>
+        </div>
+        <p>{{ text.finallyNote }}</p>
       </article>
     </div>
   </figure>
@@ -224,6 +247,10 @@ const text = computed(() =>
 
 .lifecycle-flow__branch.is-protocol {
   --branch-color: var(--envoi-teal);
+}
+
+.lifecycle-flow__branch.is-finally {
+  --branch-color: var(--envoi-violet);
 }
 
 .lifecycle-flow__branch header {

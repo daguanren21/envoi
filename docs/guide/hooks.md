@@ -6,22 +6,43 @@ Hooks share request and response behavior without coupling the HTTP client to a 
 
 <LifecycleFlow lang="en" />
 
-`onRequestError` handles errors thrown by the adapter. `onResponseError` runs only after the adapter returned a response and the envelope classified it as non-ok.
+`onRequestError` handles adapter throws. `onResponseError` runs after response policy classifies non-ok. `onSuccess` receives the value selected for resolution. `onFinally` runs once on every path.
 
-A hook or hook array runs sequentially. Return values are ignored; mutate the context directly.
+Hooks run sequentially. Return values are ignored; mutate `ctx.request`, `ctx.response`, `ctx.error`, or `ctx.value` at the matching phase.
 
 ## Global hooks
 
 ```ts
 const http = createHttp({
+  adapter: "fetch",
   hooks: {
     onRequest: [auth(getToken), addLocale, addTraceId],
     onRequestError: reportNetworkFailure,
     onResponse: normalizeSharedHeaders,
     onResponseError: [handleUnauthorized, showErrorToast],
+    onSuccess: observeResolvedValue,
+    onFinally: stopTrace,
   },
 });
 ```
+
+## Success and cleanup
+
+```ts
+const http = createHttp({
+  adapter: "fetch",
+  hooks: {
+    onSuccess: (ctx) => {
+      ctx.value = normalizeResolvedValue(ctx.value);
+    },
+    onFinally: (ctx) => {
+      finishTrace(ctx.request, ctx.error);
+    },
+  },
+});
+```
+
+`onFinally` hooks all run even when an earlier cleanup hook fails. If the request and cleanup both fail, the promise rejects with an `AggregateError`: request error first, cleanup errors after it in declaration order.
 
 ## Request-local hooks
 
@@ -48,6 +69,7 @@ Global hooks run before request-local hooks.
 import { auth, createHttp } from "@envoijs/http";
 
 const http = createHttp({
+  adapter: "fetch",
   hooks: {
     onRequest: auth(() => localStorage.getItem("token")),
   },
@@ -64,6 +86,7 @@ The `silent` option is stored in request metadata for an error hook to read. `ct
 import { BizError } from "@envoijs/http";
 
 const http = createHttp({
+  adapter: "fetch",
   hooks: {
     onResponseError: (ctx) => {
       if (ctx.error instanceof BizError && ctx.request.meta.silent !== true)

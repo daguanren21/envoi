@@ -25,7 +25,7 @@ Classify the requested behavior before writing code:
 
 ## Create the client
 
-Axios is the default. Application code creates a shareable instance through envoi's public factory instead of importing axios directly.
+No adapter is implicit. Application code selects a built-in or custom adapter; shared axios instances come from envoi's public factory instead of a direct axios import.
 
 ```ts
 import { axiosAdapter, createAxiosInstance, createHttp } from "@envoijs/http";
@@ -34,6 +34,7 @@ const instance = createAxiosInstance({ withCredentials: true });
 
 export const http = createHttp({
   adapter: axiosAdapter(instance),
+  envelope: {},
   defaults: {
     baseURL: "/api",
     timeout: 15_000,
@@ -46,23 +47,35 @@ Read [references/adapters.md](references/adapters.md) before adding or changing 
 Before adding a third-party package, apply
 [references/dependencies.md](references/dependencies.md).
 
+## Encapsulate project policy
+
+Use `createHttpFactory()` to define adapter, defaults, response policy, and project middleware once. Per-client overrides replace adapter/envelope, merge defaults and headers, and append hooks. Request-local hooks remain the last specialization layer.
+
+```ts
+const createProjectHttp = createHttpFactory(projectPolicy);
+const http = createProjectHttp();
+const special = createProjectHttp(overrides);
+```
+
 ## Define the envelope once
 
-Default `{ code, msg, data }` requires no config. HTTP-only backends use `envelope: false`. Renamed fields use `EnvelopeMap`. Arbitrary structures use `defineEnvelope<TBody, TValue>()`.
+HTTP-only is the core default. Standard `{ code, msg, data }` requires `envelope: {}`. Renamed fields use `EnvelopeMap`. Arbitrary structures use `defineEnvelope<TBody, TValue>()`.
 
 Read [references/envelopes-and-errors.md](references/envelopes-and-errors.md) before changing response extraction or error behavior.
 
 ## Use hooks only for cross-cutting behavior
 
-Hooks match ofetch:
+Lifecycle:
 
 ```text
-onRequest -> adapter -> onResponse
-               throw -> onRequestError
-non-ok response -> onResponseError -> throw
+onRequest -> adapter -> onResponse -> response policy
+               |                         | ok     -> onSuccess
+               | throw                   | non-ok -> onResponseError
+               v                         v
+        onRequestError                onFinally
 ```
 
-Global hooks run before request-local hooks. Hook return values are ignored; mutate context directly.
+Project hooks run before specialized-client hooks; request-local hooks run last. Return values are ignored; mutate the matching context field. `onFinally` runs on every outcome.
 
 ```ts
 await http.get("/special", {

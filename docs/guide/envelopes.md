@@ -2,9 +2,21 @@
 
 The envelope layer decides whether a parsed HTTP response succeeds and which value becomes `T`.
 
-## Default fields
+## HTTP-only default
 
-The default protocol is:
+Without an envelope policy, core uses HTTP status and returns the parsed body unchanged:
+
+```ts
+const rest = createHttp({
+  adapter: "fetch",
+});
+```
+
+A body containing `code`, `status`, or `success` has no special meaning until the project selects a policy.
+
+## Standard field map
+
+Select `envelope: {}` for this packet:
 
 ```ts
 interface DefaultEnvelope<T> {
@@ -14,28 +26,23 @@ interface DefaultEnvelope<T> {
 }
 ```
 
-`code: 200` succeeds. `code: 401` is classified as unauthorized. HTTP status remains authoritative, so HTTP 500 cannot become success because the body contains `code: 200`.
-
 ```ts
-const user = await http.get<User>("/users/1");
-const packet = await http.envelope<User>("/users/1");
+const api = createHttp({
+  adapter: "fetch",
+  envelope: {},
+});
 
-// user: User
-// packet: DefaultEnvelope<User>
+const user = await api.get<User>("/users/1");
+const packet = await api.envelope<DefaultEnvelope<User>>("/users/1");
 ```
 
-## HTTP-only responses
-
-```ts
-const rest = createHttp({ envelope: false });
-```
-
-The default client also uses HTTP status automatically when a body has no `code` field.
+`code: 200` succeeds and `code: 401` is unauthorized. HTTP status remains authoritative, so HTTP 500 cannot become success because the body contains `code: 200`.
 
 ## Map renamed fields
 
 ```ts
 const partner = createHttp({
+  adapter: "fetch",
   envelope: {
     code: "errno",
     msg: "errmsg",
@@ -67,7 +74,7 @@ const envelope = defineEnvelope<PartnerBody<User>, User>({
   error: (body) => new PartnerError(body.message),
 });
 
-const partner = createHttp({ envelope });
+const partner = createHttp({ adapter: "fetch", envelope });
 ```
 
 `value()` runs only when `kind()` returns `ok`. The error returned by `error()` is thrown unchanged.

@@ -1,20 +1,37 @@
 # 公共 API
 
-## `createHttp(options?)`
+## `createHttp(options)`
 
-创建可调用的 `HttpClient`，默认 adapter 为 axios。
+创建可调用的 `HttpClient`。`adapter` 必填；省略 `envelope` 时使用 HTTP-only policy。
 
 ```ts
 const http = createHttp({
-  adapter: "axios",
+  adapter: "fetch",
   defaults: {
     baseURL: "/api",
     timeout: 15_000,
     headers: { "Accept-Language": "zh-CN" },
   },
   envelope: { code: "code", msg: "msg", data: "data" },
-  hooks: { onRequest, onResponse, onRequestError, onResponseError },
+  hooks: {
+    onRequest,
+    onRequestError,
+    onResponse,
+    onResponseError,
+    onSuccess,
+    onFinally,
+  },
 });
+```
+
+## `createHttpFactory(projectOptions)`
+
+返回项目客户端 factory。特殊客户端会替换 adapter/envelope、合并 defaults 与 headers，并追加 hooks。
+
+```ts
+const createProjectHttp = createHttpFactory(projectOptions);
+const http = createProjectHttp();
+const special = createProjectHttp(overrides);
 ```
 
 ## `HttpClient`
@@ -26,7 +43,7 @@ http.post<T>(url, data?, options?): Promise<T>
 http.put<T>(url, data?, options?): Promise<T>
 http.patch<T>(url, data?, options?): Promise<T>
 http.delete<T>(url, options?): Promise<T>
-http.envelope<TData, TEnvelope?>(url, options?): Promise<TEnvelope>
+http.envelope<TEnvelope>(url, options?): Promise<TEnvelope>
 http.raw<T>(url, options?): Promise<HttpResponse<T>>
 ```
 
@@ -72,15 +89,20 @@ interface DefaultEnvelope<T> {
 ## Hooks
 
 ```ts
-type RequestErrorContext = HookContext & { error: unknown };
-type ResponseContext = HookContext & { response: HttpResponse };
-type ResponseErrorContext = ResponseContext & { error: Error };
+interface HookContext {
+  request: HttpRequest;
+  response?: HttpResponse;
+  error?: unknown;
+  value?: unknown;
+}
 
 interface HttpHooks {
   onRequest?: Hook<HookContext> | Hook<HookContext>[];
   onRequestError?: Hook<RequestErrorContext> | Hook<RequestErrorContext>[];
   onResponse?: Hook<ResponseContext> | Hook<ResponseContext>[];
   onResponseError?: Hook<ResponseErrorContext> | Hook<ResponseErrorContext>[];
+  onSuccess?: Hook<SuccessContext> | Hook<SuccessContext>[];
+  onFinally?: Hook<HookContext> | Hook<HookContext>[];
 }
 ```
 
@@ -117,7 +139,7 @@ error.source; // "http" | "body"
 error.kind; // "unauthorized" | "warning" | "error"
 ```
 
-transport error 保留 adapter 原始错误，并经过 `onRequestError`。
+transport error 经过 `onRequestError`，hook 可以替换 `ctx.error`。请求和 cleanup hooks 同时失败时，envoi reject 包含全部错误的 `AggregateError`。
 
 ## Middleware 与内置 hooks
 

@@ -8,6 +8,8 @@ interface HttpHooks {
   onRequestError?: Hook | Hook[];
   onResponse?: Hook | Hook[];
   onResponseError?: Hook | Hook[];
+  onSuccess?: Hook | Hook[];
+  onFinally?: Hook | Hook[];
 }
 ```
 
@@ -41,6 +43,7 @@ export const localeMiddleware = createMiddleware({
 import { createHttp, mergeMiddleware } from "@envoijs/http";
 
 export const http = createHttp({
+  adapter: "fetch",
   defaults: { baseURL: "/api" },
   hooks: mergeMiddleware(authMiddleware, localeMiddleware, traceMiddleware, errorMiddleware),
 });
@@ -87,6 +90,7 @@ export const ApiCode = {
 } as const;
 
 const http = createHttp({
+  adapter: "fetch",
   envelope: {
     code: "status",
     msg: "message",

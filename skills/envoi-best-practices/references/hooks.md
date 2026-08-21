@@ -4,7 +4,7 @@
 
 Hooks are phase callbacks, not Koa middleware. There is no `next()` and hook return values are ignored.
 
-Global hook arrays execute first. Request-local hooks execute second.
+Order: `onRequest` → adapter → `onResponse` → response policy → `onSuccess` / `onResponseError` → `onFinally`. Adapter throws pass through `onRequestError`. Project hooks run before specialized-client hooks; request-local hooks run last.
 
 ## Use hooks for
 
@@ -14,6 +14,8 @@ Global hook arrays execute first. Request-local hooks execute second.
 - global unauthorized handling;
 - global toast/log policy;
 - a one-request protocol exception via request-local hooks.
+- final cleanup through `onFinally`;
+- final resolved-value observation or replacement through `onSuccess`;
 
 ## Do not use hooks for
 
@@ -27,6 +29,7 @@ Global hook arrays execute first. Request-local hooks execute second.
 
 ```ts
 createHttp({
+  adapter: "fetch",
   hooks: {
     onRequest: auth(getToken),
     onResponseError: handleUnauthorized,
@@ -48,8 +51,10 @@ http.get("/legacy", {
 });
 ```
 
-Use `onResponse`, which runs before envelope classification. `onResponseError` observes a classified failure and cannot recover by returning a value.
+Use `onResponse` before response-policy classification. `onResponseError` receives a classified failure and may replace `ctx.error`; `onSuccess` may replace `ctx.value`.
 
 ## Error UI
 
 Read `ctx.request.meta.silent` in an error hook when a caller intentionally suppresses global UI. Always throw/retain the underlying error so query/store state can observe failure.
+
+Every `onFinally` hook runs even if an earlier cleanup fails. A request failure plus cleanup failures MUST remain observable as an `AggregateError`.

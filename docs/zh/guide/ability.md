@@ -57,6 +57,7 @@ export function logout(): void {
 
 ```ts
 const http = createHttp({
+  adapter: "fetch",
   hooks: {
     onResponseError: (ctx) => {
       if (ctx.response.status === 401) ability.reset();

@@ -6,22 +6,43 @@ Hooks 用来复用公共请求和响应行为，不会把 HTTP 客户端绑定�
 
 <LifecycleFlow lang="zh" />
 
-`onRequestError` 处理 adapter 抛出的 error。`onResponseError` 只在 adapter 已经返回 response、envelope 分类为 non-ok 后执行。
+`onRequestError` 处理 adapter 抛错。`onResponseError` 在 response policy 分类为 non-ok 后执行。`onSuccess` 收到即将 resolve 的值。`onFinally` 在所有路径执行一次。
 
-hook 或 hook 数组按顺序执行。返回值不会替换 context，需要直接修改 context。
+hooks 按顺序执行，返回值会被忽略。需要定制时修改当前阶段对应的 `ctx.request`、`ctx.response`、`ctx.error` 或 `ctx.value`。
 
 ## 全局 hooks
 
 ```ts
 const http = createHttp({
+  adapter: "fetch",
   hooks: {
     onRequest: [auth(getToken), addLocale, addTraceId],
     onRequestError: reportNetworkFailure,
     onResponse: normalizeSharedHeaders,
     onResponseError: [handleUnauthorized, showErrorToast],
+    onSuccess: observeResolvedValue,
+    onFinally: stopTrace,
   },
 });
 ```
+
+## 成功与 cleanup
+
+```ts
+const http = createHttp({
+  adapter: "fetch",
+  hooks: {
+    onSuccess: (ctx) => {
+      ctx.value = normalizeResolvedValue(ctx.value);
+    },
+    onFinally: (ctx) => {
+      finishTrace(ctx.request, ctx.error);
+    },
+  },
+});
+```
+
+前一个 cleanup hook 失败后，后面的 `onFinally` 仍会执行。请求和 cleanup 同时失败时，Promise reject `AggregateError`：第一个元素是请求 error，后面按声明顺序排列 cleanup errors。
 
 ## 单请求 hooks
 
@@ -48,6 +69,7 @@ await http.get("/legacy/report", {
 import { auth, createHttp } from "@envoijs/http";
 
 const http = createHttp({
+  adapter: "fetch",
   hooks: {
     onRequest: auth(() => localStorage.getItem("token")),
   },
@@ -64,6 +86,7 @@ const http = createHttp({
 import { BizError } from "@envoijs/http";
 
 const http = createHttp({
+  adapter: "fetch",
   hooks: {
     onResponseError: (ctx) => {
       if (ctx.error instanceof BizError && ctx.request.meta.silent !== true)

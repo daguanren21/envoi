@@ -1,6 +1,14 @@
 # Envelopes and errors
 
-## Default protocol
+## HTTP-only default
+
+```ts
+createHttp({ adapter: "fetch" });
+```
+
+Core uses HTTP status and returns the parsed body unchanged. It never infers a business protocol from body fields.
+
+## Standard `{ code, msg, data }`
 
 ```ts
 interface DefaultEnvelope<T> {
@@ -8,22 +16,20 @@ interface DefaultEnvelope<T> {
   msg?: string;
   data: T;
 }
+
+createHttp({
+  adapter: "fetch",
+  envelope: {},
+});
 ```
 
-Default ok = 200, unauthorized = 401. A body without `code` uses HTTP status and is returned as-is.
-
-HTTP status is authoritative. HTTP 500 + body `{ code: 200 }` is still an HTTP error.
-
-## HTTP-only backend
-
-```ts
-createHttp({ envelope: false });
-```
+Explicit standard mapping uses ok = 200 and unauthorized = 401. HTTP status remains authoritative.
 
 ## Renamed fields
 
 ```ts
 createHttp({
+  adapter: "fetch",
   envelope: {
     code: "errno",
     msg: "errmsg",
@@ -56,7 +62,7 @@ Rules:
 
 ```ts
 http.get<User>(url); // User
-http.envelope<User>(url); // DefaultEnvelope<User>
+http.envelope<DefaultEnvelope<User>>(url); // DefaultEnvelope<User>
 http.raw<User>(url); // HttpResponse<User>
 ```
 

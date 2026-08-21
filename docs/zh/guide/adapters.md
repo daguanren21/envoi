@@ -4,10 +4,10 @@ Adapter 执行规范化后的请求。进入 adapter 前，envoi 已经处理 ba
 
 ## Axios
 
-项目没有现成 HTTP 客户端时，可以直接使用默认 axios adapter：
+axios 是内置 adapter，但不会被隐式选择：
 
 ```ts
-const http = createHttp();
+const http = createHttp({ adapter: "axios" });
 ```
 
 已有项目应把自己持有的 instance 传进来。bridge 只接收 instance，不重新 import 或创建 axios：

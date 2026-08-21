@@ -22,8 +22,10 @@ Adapters MUST return 4xx/5xx as `HttpResponse`. They MUST throw only transport f
 
 ## Built-ins
 
+Every client MUST select its adapter explicitly:
+
 ```ts
-createHttp(); // axios
+createHttp({ adapter: "axios" });
 createHttp({ adapter: "fetch" });
 createHttp({ adapter: "ofetch" });
 ```

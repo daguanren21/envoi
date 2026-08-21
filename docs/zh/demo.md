@@ -1,14 +1,14 @@
 # 协议实验台
 
-这个页面直接在浏览器运行仓库里的 `createHttp`。场景数据会经过真实 hooks、envelope 和 error pipeline。
+这个页面直接在浏览器运行仓库里的 `createHttp`。场景数据经过真实 hooks、response policy 和 error pipeline。
 
 <ProtocolLab lang="zh" />
 
 ## 每个场景验证什么
 
-### 默认成功
+### Envelope 成功
 
-HTTP 200 加 `{ code: 200, data }`，最终 resolve 的值是 `User`。
+HTTP 200 加明确配置的 `{ code, msg, data }` policy，最终 resolve 的值是 `User`。
 
 ### 业务错误
 
@@ -16,7 +16,7 @@ HTTP 请求成功，业务 code 失败，Promise reject 为 `BizError`。直接�
 
 ### HTTP-only body
 
-`envelope: false` 返回解析后的完整 body，成功与否只看 HTTP status。
+省略 `envelope` 后返回解析完成的 body，成功与否只看 HTTP status。
 
 ### 字段改名
 
@@ -28,7 +28,7 @@ HTTP status 优先。body 里残留的 `code: 200` 不会把 HTTP 503 变成成�
 
 ## Demo 使用的 adapter
 
-Demo 注入一个小型 adapter，然后交给正常 response pipeline。
+Demo 注入一个小型 adapter，再交给配置的 hooks、response policy 和 error pipeline。
 
 ```ts
 const adapter: Adapter = {

@@ -4,10 +4,10 @@ An adapter executes the normalized request. envoi applies baseURL, serializes qu
 
 ## Axios
 
-Axios is the default when an application has no existing HTTP client:
+Axios is built in but never selected implicitly:
 
 ```ts
-const http = createHttp();
+const http = createHttp({ adapter: "axios" });
 ```
 
 An existing application should pass the instance it already owns. The reusable bridge receives that instance; it does not import or create axios:

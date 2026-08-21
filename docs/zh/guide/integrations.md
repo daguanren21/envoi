@@ -90,6 +90,7 @@ export function enableMokup(instance: AxiosInstance) {
 
   return createHttp({
     adapter: axiosAdapter(instance),
+    envelope: {},
   });
 }
 ```
@@ -161,6 +162,7 @@ export async function createMockedHttp(instance: AxiosInstance) {
 
   return createHttp({
     adapter: axiosAdapter(instance),
+    envelope: {},
   });
 }
 

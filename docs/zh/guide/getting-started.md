@@ -8,13 +8,15 @@ pnpm add @envoijs/http
 
 ## 创建统一客户端
 
-默认 adapter 是 axios。baseURL、公共 headers 和 timeout 放在 `defaults`。
+adapter 和 response policy 都需要明确选择。baseURL、公共 headers 和 timeout 放在 `defaults`。
 
 ```ts
 // src/api/http.ts
 import { createHttp } from "@envoijs/http";
 
 export const http = createHttp({
+  adapter: "fetch",
+  envelope: {},
   defaults: {
     baseURL: "/api",
     timeout: 15_000,
@@ -30,6 +32,8 @@ export const http = createHttp({
   },
 });
 ```
+
+`adapter` 是必填项。`envelope: {}` 明确选择标准 `{ code, msg, data }` policy。
 
 ## 定义 API 函数
 
@@ -66,12 +70,11 @@ user.name;
 
 ## 接入只看 HTTP status 的服务
 
-body 没有 `code` 字段时，默认客户端会回到 HTTP status。整个服务都返回 REST 数据时，可以明确关闭 envelope。
+HTTP-only 是 core 的默认 response policy。省略 `envelope` 后直接返回解析完成的 body：
 
 ```ts
 const rest = createHttp({
   adapter: "fetch",
-  envelope: false,
   defaults: {
     baseURL: "https://api.example.test",
   },
@@ -97,6 +100,7 @@ await http.get("/legacy/report", {
 
 ## 继续阅读
 
+- [项目默认策略](./project-policies)
 - [响应 Envelope](./envelopes)
 - [Hooks](./hooks)
 - [Adapters](./adapters)

@@ -17,12 +17,14 @@ pnpm add @envoijs/http
 
 ## Quick start
 
-Axios is the default adapter.
+Select both transport and response policy explicitly:
 
 ```ts
 import { createHttp } from "@envoijs/http";
 
 const http = createHttp({
+  adapter: "fetch",
+  envelope: {},
   defaults: {
     baseURL: "/api",
     timeout: 15_000,
@@ -37,16 +39,20 @@ const http = createHttp({
 const user = await http.get<User>("/users/1");
 ```
 
-A response such as `{ code: 200, msg: "ok", data: user }` resolves to `user`. A body without `code` falls back to HTTP status and is returned as-is.
+With `envelope: {}`, `{ code: 200, msg: "ok", data: user }` resolves to `user`.
 
-## Envelopes
+## Response policies
 
 ```ts
-// HTTP-only API
-createHttp({ envelope: false });
+// HTTP-only is the core default
+createHttp({ adapter: "fetch" });
+
+// Explicit standard { code, msg, data }
+createHttp({ adapter: "fetch", envelope: {} });
 
 // Renamed fields
 createHttp({
+  adapter: "fetch",
   envelope: {
     code: "errno",
     msg: "errmsg",
@@ -69,15 +75,18 @@ const envelope = defineEnvelope<PartnerBody<User>, User>({
 
 ## Hooks
 
-Hooks follow the ofetch lifecycle. Global hooks run before request-local hooks.
+Hooks run in explicit phases. Client hooks precede request-local hooks.
 
 ```ts
 const http = createHttp({
+  adapter: "fetch",
   hooks: {
     onRequest: [addAuthHeader, addLocaleHeader],
     onRequestError: reportNetworkFailure,
     onResponse: normalizeSharedResponse,
     onResponseError: handleUnauthorized,
+    onSuccess: observeResolvedValue,
+    onFinally: stopTrace,
   },
 });
 
@@ -99,6 +108,7 @@ const responseMiddleware = createMiddleware({
 });
 
 const http = createHttp({
+  adapter: "fetch",
   envelope: {
     code: "status",
     msg: "message",
@@ -115,7 +125,7 @@ const http = createHttp({
 ## Adapters
 
 ```ts
-createHttp(); // axios
+createHttp({ adapter: "axios" });
 createHttp({ adapter: "fetch" });
 createHttp({ adapter: "ofetch" });
 ```
@@ -143,6 +153,28 @@ The [adapter guide](https://daguanren21.github.io/envoi/guide/adapters#existing-
 The [Vue and mock guide](https://daguanren21.github.io/envoi/guide/integrations) covers `vue-axios`, Mokup, and `axios-mock-adapter` on the shared instance.
 
 Custom transports implement `{ name, request }` and return every HTTP response, including 4xx/5xx.
+
+## Project factories
+
+```ts
+const createProjectHttp = createHttpFactory({
+  adapter: "fetch",
+  defaults: {
+    baseURL: "/api",
+    headers: { "x-client": "seller-web" },
+  },
+  envelope: {},
+  hooks: mergeMiddleware(authMiddleware, errorMiddleware),
+});
+
+const http = createProjectHttp();
+const reportHttp = createProjectHttp({
+  defaults: { baseURL: "/reports" },
+  hooks: { onFinally: stopReportTrace },
+});
+```
+
+Overrides replace adapter/envelope, merge defaults and headers, and append hooks.
 
 ## Query libraries
 

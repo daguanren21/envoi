@@ -2,7 +2,21 @@
 
 Envelope 层负责判断已解析的 HTTP response 是否成功，并决定哪个值成为 `T`。
 
-## 默认字段
+## 默认只处理 HTTP
+
+没有 envelope policy 时，core 只看 HTTP status，并原样返回解析后的 body：
+
+```ts
+const rest = createHttp({
+  adapter: "fetch",
+});
+```
+
+body 中即使存在 `code`、`status` 或 `success`，项目没有选择 policy 前都不会产生特殊含义。
+
+## 标准字段映射
+
+下面这种 packet 需要明确设置 `envelope: {}`：
 
 ```ts
 interface DefaultEnvelope<T> {
@@ -12,28 +26,23 @@ interface DefaultEnvelope<T> {
 }
 ```
 
-默认把 `code: 200` 识别为成功，把 `code: 401` 识别为未授权。HTTP status 优先，HTTP 500 不会因为 body 有 `code: 200` 就变成成功。
-
 ```ts
-const user = await http.get<User>("/users/1");
-const packet = await http.envelope<User>("/users/1");
+const api = createHttp({
+  adapter: "fetch",
+  envelope: {},
+});
 
-// user: User
-// packet: DefaultEnvelope<User>
+const user = await api.get<User>("/users/1");
+const packet = await api.envelope<DefaultEnvelope<User>>("/users/1");
 ```
 
-## 只使用 HTTP status
-
-```ts
-const rest = createHttp({ envelope: false });
-```
-
-默认客户端遇到没有 `code` 的 body 时，也会直接按 HTTP status 处理。
+`code: 200` 表示成功，`code: 401` 表示未授权。HTTP status 优先，HTTP 500 不会因为 body 有 `code: 200` 就变成成功。
 
 ## 映射不同字段名
 
 ```ts
 const partner = createHttp({
+  adapter: "fetch",
   envelope: {
     code: "errno",
     msg: "errmsg",
@@ -56,6 +65,8 @@ const envelope = defineEnvelope<PartnerBody<User>, User>({
   value: (body) => body.result,
   error: (body) => new PartnerError(body.message),
 });
+
+const partner = createHttp({ adapter: "fetch", envelope });
 ```
 
 `value()` 只在成功时执行，`error()` 返回的错误会原样抛出。

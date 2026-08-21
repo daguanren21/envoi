@@ -1,16 +1,16 @@
 <script setup lang="ts">
 interface Props {
+  request?: string;
   adapter?: string;
-  hooks?: string;
-  envelope?: string;
+  policy?: string;
   result?: string;
   label?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  request: "request hooks",
   adapter: "adapter",
-  hooks: "hooks",
-  envelope: "envelope",
+  policy: "response policy",
   result: "Promise<T>",
   label: "Request processing flow",
 });
@@ -18,21 +18,21 @@ const props = withDefaults(defineProps<Props>(), {
 
 <template>
   <div class="request-flow" role="img" :aria-label="props.label">
-    <div class="request-flow__stage request-flow__stage--adapter">
+    <div class="request-flow__stage request-flow__stage--request">
       <span class="request-flow__index">01</span>
+      <strong>{{ props.request }}</strong>
+      <small>lifecycle</small>
+    </div>
+    <span class="request-flow__arrow" aria-hidden="true">→</span>
+    <div class="request-flow__stage request-flow__stage--adapter">
+      <span class="request-flow__index">02</span>
       <strong>{{ props.adapter }}</strong>
       <small>transport</small>
     </div>
     <span class="request-flow__arrow" aria-hidden="true">→</span>
-    <div class="request-flow__stage request-flow__stage--hooks">
-      <span class="request-flow__index">02</span>
-      <strong>{{ props.hooks }}</strong>
-      <small>lifecycle</small>
-    </div>
-    <span class="request-flow__arrow" aria-hidden="true">→</span>
-    <div class="request-flow__stage request-flow__stage--envelope">
+    <div class="request-flow__stage request-flow__stage--policy">
       <span class="request-flow__index">03</span>
-      <strong>{{ props.envelope }}</strong>
+      <strong>{{ props.policy }}</strong>
       <small>protocol</small>
     </div>
     <span class="request-flow__arrow" aria-hidden="true">→</span>
@@ -76,15 +76,15 @@ const props = withDefaults(defineProps<Props>(), {
   content: "";
 }
 
+.request-flow__stage--request {
+  --stage-color: var(--envoi-amber);
+}
+
 .request-flow__stage--adapter {
   --stage-color: var(--envoi-coral);
 }
 
-.request-flow__stage--hooks {
-  --stage-color: var(--envoi-amber);
-}
-
-.request-flow__stage--envelope {
+.request-flow__stage--policy {
   --stage-color: var(--envoi-teal);
 }
 

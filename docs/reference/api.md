@@ -1,20 +1,37 @@
 # Public API
 
-## `createHttp(options?)`
+## `createHttp(options)`
 
-Creates a callable `HttpClient`. Axios is the default adapter.
+Creates a callable `HttpClient`. `adapter` is required; an omitted `envelope` selects HTTP-only behavior.
 
 ```ts
 const http = createHttp({
-  adapter: "axios",
+  adapter: "fetch",
   defaults: {
     baseURL: "/api",
     timeout: 15_000,
     headers: { "Accept-Language": "en-US" },
   },
   envelope: { code: "code", msg: "msg", data: "data" },
-  hooks: { onRequest, onResponse, onRequestError, onResponseError },
+  hooks: {
+    onRequest,
+    onRequestError,
+    onResponse,
+    onResponseError,
+    onSuccess,
+    onFinally,
+  },
 });
+```
+
+## `createHttpFactory(projectOptions)`
+
+Returns a client factory. Per-client overrides replace adapter/envelope, merge defaults and headers, and append hooks.
+
+```ts
+const createProjectHttp = createHttpFactory(projectOptions);
+const http = createProjectHttp();
+const special = createProjectHttp(overrides);
 ```
 
 ## `HttpClient`
@@ -26,7 +43,7 @@ http.post<T>(url, data?, options?): Promise<T>
 http.put<T>(url, data?, options?): Promise<T>
 http.patch<T>(url, data?, options?): Promise<T>
 http.delete<T>(url, options?): Promise<T>
-http.envelope<TData, TEnvelope?>(url, options?): Promise<TEnvelope>
+http.envelope<TEnvelope>(url, options?): Promise<TEnvelope>
 http.raw<T>(url, options?): Promise<HttpResponse<T>>
 ```
 
@@ -72,15 +89,20 @@ Adds contextual types to arbitrary protocol callbacks and preserves custom error
 ## Hooks
 
 ```ts
-type RequestErrorContext = HookContext & { error: unknown };
-type ResponseContext = HookContext & { response: HttpResponse };
-type ResponseErrorContext = ResponseContext & { error: Error };
+interface HookContext {
+  request: HttpRequest;
+  response?: HttpResponse;
+  error?: unknown;
+  value?: unknown;
+}
 
 interface HttpHooks {
   onRequest?: Hook<HookContext> | Hook<HookContext>[];
   onRequestError?: Hook<RequestErrorContext> | Hook<RequestErrorContext>[];
   onResponse?: Hook<ResponseContext> | Hook<ResponseContext>[];
   onResponseError?: Hook<ResponseErrorContext> | Hook<ResponseErrorContext>[];
+  onSuccess?: Hook<SuccessContext> | Hook<SuccessContext>[];
+  onFinally?: Hook<HookContext> | Hook<HookContext>[];
 }
 ```
 
@@ -117,7 +139,7 @@ error.source; // "http" | "body"
 error.kind; // "unauthorized" | "warning" | "error"
 ```
 
-Transport errors remain the underlying adapter error and pass through `onRequestError`.
+Transport errors pass through `onRequestError`, which may replace `ctx.error`. If request and cleanup hooks both fail, envoi rejects an `AggregateError` containing every failure.
 
 ## Middleware and built-in hooks
 

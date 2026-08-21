@@ -6,9 +6,9 @@ This page runs the repository's `createHttp` implementation in the browser. No m
 
 ## What each scenario proves
 
-### Default success
+### Envelope success
 
-HTTP 200 with `{ code: 200, data }` resolves the inner `data` as `User`.
+HTTP 200 with an explicit `{ code, msg, data }` policy resolves the inner `data` as `User`.
 
 ### Business error
 
@@ -16,7 +16,7 @@ HTTP 200 with a failed business code rejects with `BizError`. Axios alone would 
 
 ### HTTP-only body
 
-`envelope: false` returns the parsed body and uses HTTP status for success.
+With `envelope` omitted, core returns the parsed body and uses only HTTP status.
 
 ### Renamed fields
 
@@ -28,7 +28,7 @@ HTTP status takes precedence. A stale body containing `code: 200` cannot turn HT
 
 ## The adapter used by the demo
 
-The demo injects a small adapter and lets the normal hooks/envelope/error pipeline process its `HttpResponse`.
+The demo injects a small adapter and lets the configured hooks, response policy, and error pipeline process its `HttpResponse`.
 
 ```ts
 const adapter: Adapter = {

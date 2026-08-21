@@ -24,7 +24,7 @@ features:
   - title: 返回契约只写一次
     details: HTTP status、业务 code、字段改名和自定义 error 都放进带类型的 envelope。
   - title: Transport 可以替换
-    details: 默认 axios，fetch、ofetch 和自定义 adapter 接收相同的规范化请求。
+    details: transport 不做隐式选择，axios、fetch、ofetch 和自定义 adapter 接收相同的规范化请求。
   - title: 调试路径明确
     details: hooks 暴露生命周期，raw 保留 status、headers、blob 和底层 response。
 ---
@@ -33,7 +33,7 @@ features:
 
 <div class="envoi-home-section">
 
-## 一个客户端，三层职责
+## 一个客户端，四层职责
 
 ```ts
 const instance = createAxiosInstance({ withCredentials: true });
@@ -46,14 +46,14 @@ const http = createHttp({
 ```
 
 <RequestFlow
+  request="request hooks"
   adapter="adapter"
-  hooks="hooks"
-  envelope="envelope"
+  policy="response policy"
   result="Promise<T>"
   label="请求处理流程"
 />
 
-Adapter 执行 HTTP，hooks 处理公共生命周期，envelope 把后端协议映射成 `T`。应用状态由调用方管理。
+request hooks 准备请求，adapter 执行 HTTP，项目选择的 response policy 产出 `Promise<T>`。应用状态仍由调用方管理。
 
 ## 可以直接落到项目里的案例
 
@@ -66,7 +66,7 @@ Adapter 执行 HTTP，hooks 处理公共生命周期，envelope 把后端协议�
   <a href="./guide/envelopes">
     <span>02 / 返回协议</span>
     <strong>定义 response contract</strong>
-    <p>覆盖默认 envelope、HTTP-only、字段改名、自定义 error 和预期中的失败 body。</p>
+    <p>覆盖 HTTP-only 默认行为、显式 envelope、字段改名、自定义 error 和预期失败 body。</p>
   </a>
   <a href="./guide/adapters">
     <span>03 / Transport</span>

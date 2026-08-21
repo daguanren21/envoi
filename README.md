@@ -47,20 +47,20 @@ Use envoi when one or more of these apply:
 - some services use business codes while others rely only on HTTP status;
 - the same API functions must work with Pinia Colada, TanStack Query, Vuex, Pinia, Jotai, Zustand, or Redux;
 - authentication, locale, tracing, and shared error handling need reusable hooks;
-- axios is the default today, but fetch, ofetch, or a custom transport may be needed later.
+- each application must explicitly select axios, fetch, ofetch, or a custom transport.
 
 A project that only needs a few plain HTTP calls and has no shared response protocol can keep using native fetch or axios directly.
 
 ## Quick start
 
-Axios is the default adapter.
-
-Axios is a runtime dependency of envoi. Application code does not install or import it separately; use `createAxiosInstance()` when an external plugin needs the shared instance.
+Select the transport and response policy explicitly. This example chooses the built-in fetch adapter and a `{ code, msg, data }` envelope:
 
 ```ts
 import { createHttp } from "@envoijs/http";
 
 export const http = createHttp({
+  adapter: "fetch",
+  envelope: {},
   defaults: {
     baseURL: "/api",
     timeout: 15_000,
@@ -102,41 +102,43 @@ Given this response:
 { id: 1, name: "Ada" }
 ```
 
-## Response envelopes
+## Response policies
 
-### Default `{ code, msg, data }`
+### HTTP-only by default
 
-No configuration is required. `code: 200` succeeds and `code: 401` is classified as unauthorized.
-
-```ts
-const user = await http.get<User>("/users/1");
-const packet = await http.envelope<User>("/users/1");
-
-// user: User
-// packet: DefaultEnvelope<User>
-```
-
-HTTP status remains authoritative. HTTP 500 cannot be converted into success by a body containing `code: 200`.
-
-### HTTP-only APIs
-
-Disable business-envelope handling when a service returns REST data directly:
+Omit `envelope` when the backend returns REST data directly. Success depends only on HTTP status and the parsed body is returned unchanged:
 
 ```ts
 const rest = createHttp({
   adapter: "fetch",
-  envelope: false,
 });
 
 const user = await rest.get<User>("/users/1");
 ```
 
-A body without a `code` field already falls back to HTTP status, so mixed services can often use the default client.
+A body containing `code` is still returned unchanged. Core never guesses that a field is a business status.
+
+### Explicit `{ code, msg, data }`
+
+Set `envelope: {}` to select the standard field map. `code: 200` succeeds and `code: 401` is classified as unauthorized:
+
+```ts
+const api = createHttp({
+  adapter: "fetch",
+  envelope: {},
+});
+
+const user = await api.get<User>("/users/1");
+const packet = await api.envelope<DefaultEnvelope<User>>("/users/1");
+```
+
+HTTP status remains authoritative. HTTP 500 cannot be converted into success by a body containing `code: 200`.
 
 ### Renamed fields
 
 ```ts
 const partner = createHttp({
+  adapter: "fetch",
   envelope: {
     code: "errno",
     msg: "errmsg",
@@ -165,29 +167,37 @@ const envelope = defineEnvelope<PartnerBody<User>, User>({
   error: (body) => new Error(body.message),
 });
 
-const partner = createHttp({ envelope });
+const partner = createHttp({
+  adapter: "fetch",
+  envelope,
+});
 ```
 
 Custom errors are preserved. `value()` runs only for successful responses.
 
 ## Hooks
 
-Hooks follow the ofetch lifecycle:
+Hooks expose six explicit phases:
 
 - `onRequest`
 - `onRequestError`
 - `onResponse`
 - `onResponseError`
+- `onSuccess`
+- `onFinally`
 
 A hook or hook array runs sequentially. Hooks mutate the context; return values are ignored.
 
 ```ts
 const http = createHttp({
+  adapter: "fetch",
   hooks: {
     onRequest: [addAuthHeader, addLocaleHeader],
     onRequestError: reportNetworkFailure,
     onResponse: normalizeSharedResponse,
     onResponseError: [handleUnauthorized, showErrorToast],
+    onSuccess: observeResolvedValue,
+    onFinally: stopRequestTrace,
   },
 });
 ```
@@ -233,6 +243,7 @@ const ApiCode = {
 } as const;
 
 const http = createHttp({
+  adapter: "fetch",
   envelope: {
     code: "status",
     msg: "message",
@@ -251,10 +262,9 @@ See the [middleware integration guide](https://daguanren21.github.io/envoi/guide
 
 ## Adapters
 
-Built-in adapters:
+Built-in adapters are selected explicitly:
 
 ```ts
-createHttp(); // axios
 createHttp({ adapter: "axios" });
 createHttp({ adapter: "fetch" });
 createHttp({ adapter: "ofetch" }); // optional peer
@@ -323,6 +333,39 @@ const http = createHttp({ adapter: customAdapter });
 ```
 
 Adapters receive a final URL with baseURL and query parameters already applied. They return every HTTP response, including 4xx and 5xx, and throw only transport failures such as network errors, aborts, and timeouts.
+
+## Project-level policies
+
+Wrap each application's defaults once. Specialized clients inherit headers and hooks without reimplementing the transport pipeline:
+
+```ts
+import { createHttpFactory, mergeMiddleware } from "@envoijs/http";
+
+const createProjectHttp = createHttpFactory({
+  adapter: "fetch",
+  defaults: {
+    baseURL: "/api",
+    timeout: 15_000,
+    headers: { "x-client": "seller-web" },
+  },
+  envelope: {},
+  hooks: mergeMiddleware(authMiddleware, errorMiddleware),
+});
+
+export const http = createProjectHttp();
+
+export const reportHttp = createProjectHttp({
+  defaults: {
+    baseURL: "/reports",
+    headers: { "x-domain": "reporting" },
+  },
+  hooks: {
+    onFinally: stopReportTrace,
+  },
+});
+```
+
+Factory overrides replace `adapter` and `envelope`, merge defaults and headers, and append hooks in base-to-specialized order. Request-local hooks run after all client hooks.
 
 ## Pinia Colada and TanStack Query
 

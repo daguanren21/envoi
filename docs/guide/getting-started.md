@@ -8,13 +8,15 @@ pnpm add @envoijs/http
 
 ## Create one client
 
-Axios is the default adapter. Common base URL, headers, and timeout stay in `defaults`.
+Choose the adapter and response policy explicitly. Common base URL, headers, and timeout stay in `defaults`.
 
 ```ts
 // src/api/http.ts
 import { createHttp } from "@envoijs/http";
 
 export const http = createHttp({
+  adapter: "fetch",
+  envelope: {},
   defaults: {
     baseURL: "/api",
     timeout: 15_000,
@@ -30,6 +32,8 @@ export const http = createHttp({
   },
 });
 ```
+
+`adapter` is required. `envelope: {}` explicitly selects the standard `{ code, msg, data }` policy.
 
 ## Define typed API functions
 
@@ -66,12 +70,11 @@ user.name;
 
 ## Use an HTTP-only service
 
-A body without a `code` field already falls back to HTTP status. Set `envelope: false` when the entire service uses direct REST responses.
+HTTP-only is the core response policy. Omit `envelope` and the parsed response body is returned unchanged:
 
 ```ts
 const rest = createHttp({
   adapter: "fetch",
-  envelope: false,
   defaults: {
     baseURL: "https://api.example.test",
   },
@@ -97,6 +100,7 @@ await http.get("/legacy/report", {
 
 ## Next
 
+- Encapsulate defaults with [project policies](./project-policies).
 - Configure [response envelopes](./envelopes).
 - Share behavior with [hooks](./hooks).
 - Choose or implement an [adapter](./adapters).

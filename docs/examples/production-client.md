@@ -57,7 +57,12 @@ export const responseMiddleware = createMiddleware({
 
 ```ts
 // src/api/http.ts
-import { axiosAdapter, createAxiosInstance, createHttp, mergeMiddleware } from "@envoijs/http";
+import {
+  axiosAdapter,
+  createAxiosInstance,
+  createHttpFactory,
+  mergeMiddleware,
+} from "@envoijs/http";
 import { ApiCode } from "./contracts";
 import { requestMiddleware, responseMiddleware } from "./middleware";
 
@@ -66,7 +71,7 @@ const instance = createAxiosInstance({
   xsrfCookieName: "XSRF-TOKEN",
 });
 
-export const http = createHttp({
+export const createProjectHttp = createHttpFactory({
   adapter: axiosAdapter(instance),
   defaults: {
     baseURL: "/api",
@@ -85,6 +90,8 @@ export const http = createHttp({
   },
   hooks: mergeMiddleware(requestMiddleware, responseMiddleware),
 });
+
+export const http = createProjectHttp();
 ```
 
 ## 3. Keep API functions small

@@ -47,20 +47,20 @@ query cache 收到 `User`，HTTP 错误和业务错误都会 reject。
 - 一部分服务使用业务状态码，另一部分服务只看 HTTP status；
 - 同一组 API 要接入 Pinia Colada、TanStack Query、Vuex、Pinia、Jotai、Zustand 或 Redux；
 - token、语言、链路追踪和公共错误处理需要复用；
-- 当前默认使用 axios，后续还要接 fetch、ofetch 或自定义 transport。
+- 每个应用需要明确选择 axios、fetch、ofetch 或自定义 transport。
 
 只有少量普通 HTTP 调用、没有公共 response 协议和 hook 的项目，可以继续直接使用 fetch 或 axios。
 
 ## 快速开始
 
-默认 adapter 是 axios。
-
-axios 是 envoi 的 runtime dependency。应用代码无需单独安装或 import；外部 plugin 需要共享 instance 时使用 `createAxiosInstance()`。
+transport 和 response policy 都需要明确选择。下面使用内置 fetch adapter，并配置 `{ code, msg, data }` envelope：
 
 ```ts
 import { createHttp } from "@envoijs/http";
 
 export const http = createHttp({
+  adapter: "fetch",
+  envelope: {},
   defaults: {
     baseURL: "/api",
     timeout: 15_000,
@@ -102,41 +102,43 @@ const user = await http.get<User>("/users/1");
 { id: 1, name: "Ada" }
 ```
 
-## Response envelope
+## Response policy
 
-### 默认 `{ code, msg, data }`
+### 默认只处理 HTTP
 
-默认配置把 `code: 200` 识别为成功，把 `code: 401` 识别为未授权。
-
-```ts
-const user = await http.get<User>("/users/1");
-const packet = await http.envelope<User>("/users/1");
-
-// user: User
-// packet: DefaultEnvelope<User>
-```
-
-HTTP status 优先。HTTP 500 不会因为 body 里有 `code: 200` 就变成成功。
-
-### 只使用 HTTP status
-
-REST API 可以关闭业务 envelope：
+后端直接返回 REST data 时省略 `envelope`。成功与否只看 HTTP status，解析后的 body 原样返回：
 
 ```ts
 const rest = createHttp({
   adapter: "fetch",
-  envelope: false,
 });
 
 const user = await rest.get<User>("/users/1");
 ```
 
-body 没有 `code` 字段时，默认客户端也会自动回到 HTTP status，并返回完整 body。
+body 即使含有 `code`，core 也不会把它猜成业务状态。
+
+### 明确配置 `{ code, msg, data }`
+
+设置 `envelope: {}` 后使用标准字段映射。`code: 200` 表示成功，`code: 401` 表示未授权：
+
+```ts
+const api = createHttp({
+  adapter: "fetch",
+  envelope: {},
+});
+
+const user = await api.get<User>("/users/1");
+const packet = await api.envelope<DefaultEnvelope<User>>("/users/1");
+```
+
+HTTP status 优先。HTTP 500 不会因为 body 里有 `code: 200` 就变成成功。
 
 ### 字段名不同
 
 ```ts
 const partner = createHttp({
+  adapter: "fetch",
   envelope: {
     code: "errno",
     msg: "errmsg",
@@ -165,29 +167,37 @@ const envelope = defineEnvelope<PartnerBody<User>, User>({
   error: (body) => new Error(body.message),
 });
 
-const partner = createHttp({ envelope });
+const partner = createHttp({
+  adapter: "fetch",
+  envelope,
+});
 ```
 
 自定义 error 会原样抛出。失败 response 不会执行 `value()`。
 
 ## Hooks
 
-生命周期和 ofetch 一致：
+Hooks 提供六个明确阶段：
 
 - `onRequest`
 - `onRequestError`
 - `onResponse`
 - `onResponseError`
+- `onSuccess`
+- `onFinally`
 
 hook 或 hook 数组按顺序执行。返回值不会替换 context，需要直接修改 context。
 
 ```ts
 const http = createHttp({
+  adapter: "fetch",
   hooks: {
     onRequest: [addAuthHeader, addLocaleHeader],
     onRequestError: reportNetworkFailure,
     onResponse: normalizeSharedResponse,
     onResponseError: [handleUnauthorized, showErrorToast],
+    onSuccess: observeResolvedValue,
+    onFinally: stopRequestTrace,
   },
 });
 ```
@@ -233,6 +243,7 @@ const ApiCode = {
 } as const;
 
 const http = createHttp({
+  adapter: "fetch",
   envelope: {
     code: "status",
     msg: "message",
@@ -251,10 +262,9 @@ axios interceptor 对照和单请求接入方式见 [middleware 接入指南](ht
 
 ## Adapters
 
-内置 adapter：
+内置 adapter 需要明确选择：
 
 ```ts
-createHttp(); // axios
 createHttp({ adapter: "axios" });
 createHttp({ adapter: "fetch" });
 createHttp({ adapter: "ofetch" }); // optional peer
@@ -323,6 +333,39 @@ const http = createHttp({ adapter: customAdapter });
 ```
 
 adapter 收到的 URL 已经包含 baseURL 和序列化后的 query。4xx、5xx 需要作为 `HttpResponse` 返回；网络失败、abort 和 timeout 才抛 transport error。
+
+## 项目级默认策略
+
+每个应用只封装一次默认行为。特殊客户端继承 headers 和 hooks，无需重写 transport pipeline：
+
+```ts
+import { createHttpFactory, mergeMiddleware } from "@envoijs/http";
+
+const createProjectHttp = createHttpFactory({
+  adapter: "fetch",
+  defaults: {
+    baseURL: "/api",
+    timeout: 15_000,
+    headers: { "x-client": "seller-web" },
+  },
+  envelope: {},
+  hooks: mergeMiddleware(authMiddleware, errorMiddleware),
+});
+
+export const http = createProjectHttp();
+
+export const reportHttp = createProjectHttp({
+  defaults: {
+    baseURL: "/reports",
+    headers: { "x-domain": "reporting" },
+  },
+  hooks: {
+    onFinally: stopReportTrace,
+  },
+});
+```
+
+factory override 会替换 `adapter` 和 `envelope`，合并 defaults 与 headers，并按 base 到 specialized 的顺序追加 hooks。单请求 hooks 最后执行。
 
 ## 接入 Pinia Colada 和 TanStack Query
 
