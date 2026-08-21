@@ -1,6 +1,6 @@
 {
   "name": "@envoijs/http",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Typed HTTP client: dispatch a request, then unwrap the envelope into T.",
   "keywords": [
     "axios",
