@@ -139,6 +139,8 @@ await http.get("/orders", {
 
 The [adapter guide](https://daguanren21.github.io/envoi/guide/adapters#existing-axios-instances-and-axios-plugins) documents plugin compatibility boundaries.
 
+The [Vue and mock guide](https://daguanren21.github.io/envoi/guide/integrations) covers `vue-axios`, Mokup, and `axios-mock-adapter` on the shared instance.
+
 Custom transports implement `{ name, request }` and return every HTTP response, including 4xx/5xx.
 
 ## Query libraries

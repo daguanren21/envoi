@@ -46,6 +46,8 @@ createHttp({ adapter: axiosAdapter(instance) });
 
 Register plugins before creating the envoi client. Pass per-request native/plugin fields through `meta.axios`. Response plugins MUST preserve the complete `AxiosResponse`; envelope extraction remains in envoi.
 
+Framework bindings such as `vue-axios` MAY expose the raw instance for legacy callers, but MUST NOT register envoi under `$http`; the return contracts differ. Mokup request switching and `axios-mock-adapter` MUST attach to the instance passed to `axiosAdapter`. Use one mock transport unless rewritten Mokup URLs are intentionally matched by the in-process mock adapter.
+
 ## Custom adapters
 
 Do not add ky/got/native-bridge conditionals to core. Implement the public contract and pass the object to `createHttp`.

@@ -293,6 +293,8 @@ await http.get("/orders", {
 
 See [axios plugin integration](https://daguanren21.github.io/envoi/guide/adapters#existing-axios-instances-and-axios-plugins) for ordering, retry, transform, and response-contract boundaries.
 
+`vue-axios`, Mokup, and `axios-mock-adapter` also attach to that same instance. See [Vue and mock integrations](https://daguanren21.github.io/envoi/guide/integrations) for legacy `$http`, mock-server routing, and in-process test mocks.
+
 Any other transport implements the adapter contract:
 
 ```ts

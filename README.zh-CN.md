@@ -293,6 +293,8 @@ await http.get("/orders", {
 
 注册顺序、retry、transform 和 response contract 的边界见 [axios plugin 接入说明](https://daguanren21.github.io/envoi/zh/guide/adapters#接入现有-axios-instance-与-axios-plugins)。
 
+`vue-axios`、Mokup 和 `axios-mock-adapter` 也接到这个 instance。旧 `$http`、mock server 路由和单测内存 mock 的完整接法见 [Vue 与 Mock 接入](https://daguanren21.github.io/envoi/zh/guide/integrations)。
+
 其他 transport 实现统一 adapter contract：
 
 ```ts

@@ -53,6 +53,7 @@ const enTheme: DefaultTheme.Config = {
       text: "Consumer examples",
       items: [
         { text: "Query libraries", link: "/guide/query-libraries" },
+        { text: "Vue and mocks", link: "/guide/integrations" },
         { text: "Authorization abilities", link: "/guide/ability" },
       ],
     },
@@ -111,6 +112,7 @@ const zhTheme: DefaultTheme.Config = {
       text: "使用方示例",
       items: [
         { text: "Query 库", link: "/zh/guide/query-libraries" },
+        { text: "Vue 与 Mock", link: "/zh/guide/integrations" },
         { text: "权限 Ability", link: "/zh/guide/ability" },
       ],
     },
