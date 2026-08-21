@@ -203,6 +203,50 @@ await http.get("/legacy/report", {
 
 Use hooks for cross-cutting behavior such as authentication, locale, tracing, logging, shared normalization, and global errors. Keep endpoint data ownership in the API/store/query that requested it.
 
+### Reusable middleware and status codes
+
+Group related hooks into middleware modules, then compose them once:
+
+```ts
+import { BizError, createHttp, createMiddleware, mergeMiddleware } from "@envoijs/http";
+
+const authMiddleware = createMiddleware({
+  onRequest: addAuthHeader,
+  onResponseError: (ctx) => {
+    if (ctx.error instanceof BizError && ctx.error.kind === "unauthorized")
+      clearSessionAndRedirect();
+  },
+});
+
+const errorMiddleware = createMiddleware({
+  onResponseError: (ctx) => {
+    if (ctx.error instanceof BizError && ctx.request.meta.silent !== true) showError(ctx.error.msg);
+  },
+});
+
+const ApiCode = {
+  Ok: 0,
+  Unauthorized: 10_001,
+  Validation: 20_001,
+} as const;
+
+const http = createHttp({
+  envelope: {
+    code: "status",
+    msg: "message",
+    data: "payload",
+    ok: (code) => code === ApiCode.Ok,
+    unauthorized: (code) => code === ApiCode.Unauthorized,
+    warning: (code) => code === ApiCode.Validation,
+  },
+  hooks: mergeMiddleware(authMiddleware, errorMiddleware),
+});
+```
+
+`onResponseError` receives the classified `ctx.error`. Read `BizError.code`, `kind`, and `source` instead of parsing the response body again. Global middleware runs before request-local middleware.
+
+See the [middleware integration guide](https://daguanren21.github.io/envoi/guide/middleware) for axios interceptor mapping and per-request middleware.
+
 ## Adapters
 
 Built-in adapters:

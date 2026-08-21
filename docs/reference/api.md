@@ -70,11 +70,15 @@ Adds contextual types to arbitrary protocol callbacks and preserves custom error
 ## Hooks
 
 ```ts
+type RequestErrorContext = HookContext & { error: unknown };
+type ResponseContext = HookContext & { response: HttpResponse };
+type ResponseErrorContext = ResponseContext & { error: Error };
+
 interface HttpHooks {
   onRequest?: Hook<HookContext> | Hook<HookContext>[];
   onRequestError?: Hook<RequestErrorContext> | Hook<RequestErrorContext>[];
   onResponse?: Hook<ResponseContext> | Hook<ResponseContext>[];
-  onResponseError?: Hook<ResponseContext> | Hook<ResponseContext>[];
+  onResponseError?: Hook<ResponseErrorContext> | Hook<ResponseErrorContext>[];
 }
 ```
 
@@ -109,11 +113,13 @@ error.kind; // "unauthorized" | "warning" | "error"
 
 Transport errors remain the underlying adapter error and pass through `onRequestError`.
 
-## Built-in helpers
+## Middleware and built-in hooks
 
 ```ts
-auth(getToken);
-legacyStringBody();
+createMiddleware(hooks: HttpHooks): HttpHooks;
+mergeMiddleware(...bundles: Array<HttpHooks | undefined>): HttpHooks;
+auth(getToken): Hook<HookContext>;
+legacyStringBody(): Hook<HookContext>;
 ```
 
-Both are `onRequest` hooks.
+`createMiddleware` defines a reusable typed hook bundle. `mergeMiddleware` composes bundles in declaration order. See [Reusable middleware](../guide/middleware).

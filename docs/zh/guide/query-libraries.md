@@ -57,7 +57,7 @@ const { data: user, status } = useQuery({
 
 登录会话、未保存流程和 UI 状态放在客户端 store。把同一份远程数据再复制到 store，会增加额外同步路径。
 
-## Vue 版本
+## 框架边界
 
-- Vue 3：Pinia Colada 或 TanStack Query。
-- Vue 2.7：TanStack Vue Query 仍在测试 Vue 2.7；只需要轻量异步状态时可使用 VueUse 11。
+envoi 不依赖 Vue、React 或状态库。应用继续使用已有 query library，把同一个
+`Promise<T>` API 函数传给它。

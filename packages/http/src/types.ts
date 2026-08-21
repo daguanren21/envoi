@@ -45,7 +45,7 @@ export interface HookContext {
  * - `onRequest` — mutate `ctx.request` before the adapter
  * - `onRequestError` — adapter threw (network / abort)
  * - `onResponse` — adapter returned; mutate `ctx.response` (status, body, headers)
- * - `onResponseError` — HTTP 4xx/5xx **or** envelope non-ok, before throw
+ * - `onResponseError` — receives the classified Error for HTTP or envelope failure
  */
 export interface HttpHooks {
   onRequest?: Hook<HookContext> | Hook<HookContext>[];
@@ -56,8 +56,8 @@ export interface HttpHooks {
     | Hook<HookContext & { response: HttpResponse }>
     | Hook<HookContext & { response: HttpResponse }>[];
   onResponseError?:
-    | Hook<HookContext & { response: HttpResponse }>
-    | Hook<HookContext & { response: HttpResponse }>[];
+    | Hook<HookContext & { response: HttpResponse; error: Error }>
+    | Hook<HookContext & { response: HttpResponse; error: Error }>[];
 }
 
 /**

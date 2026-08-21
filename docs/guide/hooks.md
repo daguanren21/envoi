@@ -7,7 +7,7 @@ Hooks share request and response behavior without coupling the HTTP client to a 
 ```text
 onRequest -> adapter -> onResponse -> envelope -> T
                   \-> onRequestError
-non-ok response ------------------> onResponseError -> throw
+classified non-ok ----------------> onResponseError(ctx.error) -> throw
 ```
 
 A hook or hook array runs sequentially. Return values are ignored; mutate the context directly.
@@ -60,13 +60,16 @@ Existing `Authorization` headers are not overwritten.
 
 ## Error UI and silent requests
 
-The `silent` option is stored in request metadata for an error hook to read.
+The `silent` option is stored in request metadata for an error hook to read. `ctx.error` is already classified as `BizError` for HTTP and envelope failures.
 
 ```ts
+import { BizError } from "@envoijs/http";
+
 const http = createHttp({
   hooks: {
     onResponseError: (ctx) => {
-      if (ctx.request.meta.silent !== true) showError(ctx.response.body);
+      if (ctx.error instanceof BizError && ctx.request.meta.silent !== true)
+        showError(ctx.error.msg);
     },
   },
 });
@@ -74,7 +77,9 @@ const http = createHttp({
 await http.get("/background-check", { silent: true });
 ```
 
-Keep throwing the underlying error so stores and query libraries observe failure.
+The same error is thrown after the hook, so stores and query libraries observe failure.
+
+To package several phases together, see [Reusable middleware](./middleware).
 
 ## Refresh tokens
 

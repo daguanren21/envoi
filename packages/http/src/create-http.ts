@@ -1,6 +1,6 @@
 import { withBase, withQuery } from "ufo";
 import { resolveAdapter } from "./adapters/resolve";
-import { resolveEnvelope, throwIfNeeded } from "./envelope";
+import { errorFromEnvelope, resolveEnvelope } from "./envelope";
 import { normalizeHeaders } from "./headers";
 import { callHooks } from "./hooks";
 import type {
@@ -125,11 +125,16 @@ export function createHttp<TBody = unknown, TValue = unknown>(
       ctx.request.responseType === "blob";
     const resolved = resolveEnvelope(response, skipEnvelope ? false : options.envelope);
 
-    if (resolved.kind !== "ok") {
-      const errorContext = ctx as HookContext & { response: typeof response };
+    const responseError = errorFromEnvelope(resolved);
+    if (responseError) {
+      ctx.error = responseError;
+      const errorContext = ctx as HookContext & {
+        response: typeof response;
+        error: Error;
+      };
       await callHooks(errorContext, hooks.onResponseError);
       await callHooks(errorContext, localHooks.onResponseError);
-      if (ctx.request.meta.ignoreResponseError !== true) throwIfNeeded(resolved);
+      if (ctx.request.meta.ignoreResponseError !== true) throw responseError;
       return (mode === "raw" ? response : resolved.body) as T;
     }
 

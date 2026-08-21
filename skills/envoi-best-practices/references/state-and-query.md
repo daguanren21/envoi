@@ -48,8 +48,8 @@ ability checks are a security boundary; the backend still enforces permission.
 Do not add `@icebreakers/ability` as a built-in while it is unpublished and
 unadopted. See [dependencies.md](dependencies.md).
 
-## Vue versions
+## Framework boundary
 
-- Vue 3: prefer Pinia Colada or TanStack Query.
-- Vue 2.7: TanStack Vue Query still tests Vue 2.7; VueUse 11 is suitable only for lightweight async state.
-- vue-demi is planned for deprecation; do not publish new thin wrappers around it without a tested migration strategy.
+envoi has no Vue, React, or state-library runtime dependency. Integration
+guidance should explain the `Promise<T>` contract without claiming framework
+compatibility as an envoi feature.

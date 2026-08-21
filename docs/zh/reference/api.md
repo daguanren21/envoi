@@ -70,11 +70,15 @@ interface DefaultEnvelope<T> {
 ## Hooks
 
 ```ts
+type RequestErrorContext = HookContext & { error: unknown };
+type ResponseContext = HookContext & { response: HttpResponse };
+type ResponseErrorContext = ResponseContext & { error: Error };
+
 interface HttpHooks {
   onRequest?: Hook<HookContext> | Hook<HookContext>[];
   onRequestError?: Hook<RequestErrorContext> | Hook<RequestErrorContext>[];
   onResponse?: Hook<ResponseContext> | Hook<ResponseContext>[];
-  onResponseError?: Hook<ResponseContext> | Hook<ResponseContext>[];
+  onResponseError?: Hook<ResponseErrorContext> | Hook<ResponseErrorContext>[];
 }
 ```
 
@@ -109,11 +113,13 @@ error.kind; // "unauthorized" | "warning" | "error"
 
 transport error 保留 adapter 原始错误，并经过 `onRequestError`。
 
-## 内置 helpers
+## Middleware 与内置 hooks
 
 ```ts
-auth(getToken);
-legacyStringBody();
+createMiddleware(hooks: HttpHooks): HttpHooks;
+mergeMiddleware(...bundles: Array<HttpHooks | undefined>): HttpHooks;
+auth(getToken): Hook<HookContext>;
+legacyStringBody(): Hook<HookContext>;
 ```
 
-二者都是 `onRequest` hook。
+`createMiddleware` 定义带类型的 hook bundle。`mergeMiddleware` 按声明顺序组合多个 bundle。完整示例见[可复用 Middleware](../guide/middleware)。

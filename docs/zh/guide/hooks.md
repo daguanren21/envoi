@@ -7,7 +7,7 @@ Hooks 用来复用公共请求和响应行为，不会把 HTTP 客户端绑定�
 ```text
 onRequest -> adapter -> onResponse -> envelope -> T
                   \-> onRequestError
-失败 response --------------------> onResponseError -> throw
+分类后的失败 ---------------------> onResponseError(ctx.error) -> throw
 ```
 
 hook 或 hook 数组按顺序执行。返回值不会替换 context，需要直接修改 context。
@@ -60,13 +60,16 @@ const http = createHttp({
 
 ## 静默请求
 
-`silent` 会写入 request metadata，公共错误 hook 可以读取。
+`silent` 会写入 request metadata。HTTP 和 envelope 失败完成分类后，公共错误 hook 可以直接读取 `ctx.error`。
 
 ```ts
+import { BizError } from "@envoijs/http";
+
 const http = createHttp({
   hooks: {
     onResponseError: (ctx) => {
-      if (ctx.request.meta.silent !== true) showError(ctx.response.body);
+      if (ctx.error instanceof BizError && ctx.request.meta.silent !== true)
+        showError(ctx.error.msg);
     },
   },
 });
@@ -74,7 +77,9 @@ const http = createHttp({
 await http.get("/background-check", { silent: true });
 ```
 
-错误仍然需要继续抛出，让 store 和 query library 看到失败状态。
+hook 执行后会抛出同一个 error，store 和 query library 能收到失败状态。
+
+需要把多个阶段封装成一个模块时，参考[可复用 Middleware](./middleware)。
 
 ## Token 刷新
 

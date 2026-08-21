@@ -203,6 +203,50 @@ await http.get("/legacy/report", {
 
 全局 hook 用于认证、语言、链路追踪、日志、公共 response 归一化和统一错误。某个接口的数据写入哪个 store，由发起请求的 API、store 或 query 决定。
 
+### 可复用 middleware 与状态码
+
+把同一组 hooks 定义成 middleware，再在客户端统一组合：
+
+```ts
+import { BizError, createHttp, createMiddleware, mergeMiddleware } from "@envoijs/http";
+
+const authMiddleware = createMiddleware({
+  onRequest: addAuthHeader,
+  onResponseError: (ctx) => {
+    if (ctx.error instanceof BizError && ctx.error.kind === "unauthorized")
+      clearSessionAndRedirect();
+  },
+});
+
+const errorMiddleware = createMiddleware({
+  onResponseError: (ctx) => {
+    if (ctx.error instanceof BizError && ctx.request.meta.silent !== true) showError(ctx.error.msg);
+  },
+});
+
+const ApiCode = {
+  Ok: 0,
+  Unauthorized: 10_001,
+  Validation: 20_001,
+} as const;
+
+const http = createHttp({
+  envelope: {
+    code: "status",
+    msg: "message",
+    data: "payload",
+    ok: (code) => code === ApiCode.Ok,
+    unauthorized: (code) => code === ApiCode.Unauthorized,
+    warning: (code) => code === ApiCode.Validation,
+  },
+  hooks: mergeMiddleware(authMiddleware, errorMiddleware),
+});
+```
+
+`onResponseError` 会收到分类完成的 `ctx.error`。直接读取 `BizError.code`、`kind` 和 `source`，无需重新解析 response body。全局 middleware 先于单请求 middleware 执行。
+
+axios interceptor 对照和单请求接入方式见 [middleware 接入指南](https://daguanren21.github.io/envoi/zh/guide/middleware)。
+
 ## Adapters
 
 内置 adapter：

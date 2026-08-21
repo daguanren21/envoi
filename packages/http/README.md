@@ -84,6 +84,30 @@ await http.get("/legacy", {
 });
 ```
 
+### Reusable middleware
+
+```ts
+const responseMiddleware = createMiddleware({
+  onResponseError: (ctx) => {
+    if (ctx.error instanceof BizError && ctx.error.kind === "unauthorized")
+      clearSessionAndRedirect();
+  },
+});
+
+const http = createHttp({
+  envelope: {
+    code: "status",
+    msg: "message",
+    data: "payload",
+    ok: (code) => code === ApiCode.Ok,
+    unauthorized: (code) => code === ApiCode.Unauthorized,
+  },
+  hooks: mergeMiddleware(authMiddleware, responseMiddleware),
+});
+```
+
+`createMiddleware()` types a reusable hook bundle. `mergeMiddleware()` composes bundles in declaration order. `onResponseError` receives the classified `ctx.error`, including `BizError.code`, `kind`, and `source`.
+
 ## Adapters
 
 ```ts

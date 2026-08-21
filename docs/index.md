@@ -2,71 +2,82 @@
 layout: home
 
 title: envoi
-titleTemplate: Typed HTTP responses
-description: Return Promise<T> from axios, fetch, or ofetch without repeated client wrappers.
+titleTemplate: Typed HTTP response layer
+description: A framework-free HTTP response layer for axios, fetch, ofetch, and custom transports.
 
 hero:
   name: envoi
-  text: One response contract for every HTTP adapter.
-  tagline: Return Promise<T> from axios, fetch, or ofetch—without copying interceptors or leaking transport envelopes into query caches.
+  text: Return T. Keep transport details out.
+  tagline: A framework-free HTTP response layer for axios, fetch, and ofetch. Configure business codes, hooks, and adapters once; expose Promise<T> everywhere.
   image:
     src: /brand/hero-mark.svg
     alt: envoi's opened-envelope mark
   actions:
     - theme: brand
-      text: Get started
-      link: /guide/getting-started
+      text: Run the live demo
+      link: /demo
     - theme: alt
-      text: View on GitHub
-      link: https://github.com/daguanren21/envoi
+      text: Install and configure
+      link: /guide/getting-started
 
 features:
-  - title: Typed output
-    details: API functions resolve the business value your store or query cache expects.
-  - title: Adapter-neutral
-    details: Axios by default, with fetch, ofetch, and a small custom adapter contract.
-  - title: Envelope-aware
-    details: Handle code/msg/data, renamed fields, HTTP-only services, or an arbitrary protocol once.
-  - title: Lifecycle hooks
-    details: Share auth, locale, tracing, normalization, and errors globally or for one request.
-  - title: Query-ready
-    details: Pinia Colada and TanStack Query receive T and observe business failures as errors.
-  - title: Raw when needed
-    details: Keep headers, status, blobs, and transport details through the explicit raw response path.
+  - title: Normalize once
+    details: Move HTTP status, business codes, renamed fields, and custom errors into one typed response contract.
+  - title: Keep transport portable
+    details: Axios is the default. Fetch, ofetch, and custom adapters receive the same normalized request.
+  - title: Debug explicitly
+    details: Hooks expose lifecycle behavior; raw keeps status, headers, blobs, and the underlying response available.
 ---
 
-<RequestFlow />
+<ProtocolLab lang="en" />
 
 <div class="envoi-home-section">
 
-## The contract a query cache expects
-
-Axios can power a query function after every endpoint removes `AxiosResponse`, validates the backend envelope, and returns the inner value. envoi keeps that behavior in one client.
+## One client, three independent layers
 
 ```ts
-const getCurrentUser = (): Promise<User> => http.get<User>("/users/me");
-
-const { data: user } = useQuery({
-  key: ["current-user"],
-  query: getCurrentUser,
+const http = createHttp({
+  adapter: axiosAdapter({ withCredentials: true }),
+  defaults: { baseURL: "/api", timeout: 15_000 },
+  envelope: { code: "code", msg: "msg", data: "data" },
+  hooks: { onRequest: auth(getToken), onResponseError: showError },
 });
 ```
 
-`user` is `User | undefined`. HTTP failures and failed business codes reject.
+<RequestFlow />
 
-## Choose the behavior at the right layer
+The adapter executes HTTP. Hooks handle cross-cutting lifecycle behavior. The envelope maps the backend protocol to `T`. None of those layers owns application state.
 
-- **Adapter** executes HTTP.
-- **Hooks** own cross-cutting request and response behavior.
-- **Envelope** maps the backend protocol to `T`.
-- **Store or query cache** owns the data after the promise resolves.
+## Production paths, not isolated snippets
+
+<div class="envoi-use-grid">
+  <a href="./examples/production-client">
+    <span>01 / Example</span>
+    <strong>Build a production client</strong>
+    <p>Auth, locale, business codes, query functions, downloads, and a migration path in one example.</p>
+  </a>
+  <a href="./guide/envelopes">
+    <span>02 / Protocol</span>
+    <strong>Model the response contract</strong>
+    <p>Default envelope, HTTP-only services, renamed fields, custom errors, and expected failure bodies.</p>
+  </a>
+  <a href="./guide/adapters">
+    <span>03 / Transport</span>
+    <strong>Keep adapters interchangeable</strong>
+    <p>Use native settings without leaking baseURL, query serialization, timeout, or error rules into each adapter.</p>
+  </a>
+</div>
+
+## Use envoi when repetition has become behavior
+
+A small project with two plain requests can keep native fetch or axios. envoi becomes useful when several endpoints or applications must agree on response extraction, business failures, shared headers, adapter behavior, and the value returned to callers.
 
 </div>
 
 <div class="envoi-cta">
   <div>
-    <span class="envoi-cta__eyebrow">First request</span>
-    <strong>Install the client and return a typed value.</strong>
+    <span class="envoi-cta__eyebrow">End-to-end example</span>
+    <strong>Build the client you would actually ship.</strong>
   </div>
-  <a href="./guide/getting-started">Read the guide →</a>
+  <a href="./examples/production-client">Open the example →</a>
 </div>

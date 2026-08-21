@@ -20,7 +20,8 @@ const enTheme: DefaultTheme.Config = {
   ...sharedTheme,
   nav: [
     { text: "Guide", link: "/guide/getting-started" },
-    { text: "Adapters", link: "/guide/adapters" },
+    { text: "Live demo", link: "/demo" },
+    { text: "Example", link: "/examples/production-client" },
     { text: "API", link: "/reference/api" },
     {
       text: "v0.1.0",
@@ -35,18 +36,21 @@ const enTheme: DefaultTheme.Config = {
       text: "Start",
       items: [
         { text: "Getting started", link: "/guide/getting-started" },
-        { text: "Response envelopes", link: "/guide/envelopes" },
+        { text: "Protocol lab", link: "/demo" },
+        { text: "Production client", link: "/examples/production-client" },
       ],
     },
     {
-      text: "Customize",
+      text: "Response contract",
       items: [
+        { text: "Envelopes", link: "/guide/envelopes" },
         { text: "Hooks", link: "/guide/hooks" },
+        { text: "Middleware", link: "/guide/middleware" },
         { text: "Adapters", link: "/guide/adapters" },
       ],
     },
     {
-      text: "Integrate",
+      text: "Consumer examples",
       items: [
         { text: "Query libraries", link: "/guide/query-libraries" },
         { text: "Authorization abilities", link: "/guide/ability" },
@@ -74,7 +78,8 @@ const zhTheme: DefaultTheme.Config = {
   ...sharedTheme,
   nav: [
     { text: "指南", link: "/zh/guide/getting-started" },
-    { text: "适配器", link: "/zh/guide/adapters" },
+    { text: "在线 Demo", link: "/zh/demo" },
+    { text: "完整案例", link: "/zh/examples/production-client" },
     { text: "API", link: "/zh/reference/api" },
     {
       text: "v0.1.0",
@@ -89,18 +94,21 @@ const zhTheme: DefaultTheme.Config = {
       text: "开始",
       items: [
         { text: "快速开始", link: "/zh/guide/getting-started" },
-        { text: "响应 Envelope", link: "/zh/guide/envelopes" },
+        { text: "协议实验台", link: "/zh/demo" },
+        { text: "生产客户端案例", link: "/zh/examples/production-client" },
       ],
     },
     {
-      text: "定制",
+      text: "返回契约",
       items: [
+        { text: "Envelope", link: "/zh/guide/envelopes" },
         { text: "Hooks", link: "/zh/guide/hooks" },
+        { text: "Middleware", link: "/zh/guide/middleware" },
         { text: "Adapters", link: "/zh/guide/adapters" },
       ],
     },
     {
-      text: "集成",
+      text: "使用方示例",
       items: [
         { text: "Query 库", link: "/zh/guide/query-libraries" },
         { text: "权限 Ability", link: "/zh/guide/ability" },
@@ -138,6 +146,13 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: true,
   appearance: true,
+  markdown: {
+    lineNumbers: true,
+    theme: {
+      light: "github-light",
+      dark: "github-dark",
+    },
+  },
   sitemap: { hostname: "https://daguanren21.github.io/envoi/" },
   head: [
     [

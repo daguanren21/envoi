@@ -1,9 +1,15 @@
 import { describe, expectTypeOf, it } from "vitest";
-import { axiosAdapter } from "../src/adapters/axios";
-import { fetchAdapter } from "../src/adapters/fetch";
-import { ofetchAdapter } from "../src/adapters/ofetch";
-import { createHttp } from "../src/create-http";
-import type { DefaultEnvelope } from "../src/types";
+import {
+  axiosAdapter,
+  BizError,
+  createHttp,
+  createMiddleware,
+  fetchAdapter,
+  mergeMiddleware,
+  ofetchAdapter,
+  type DefaultEnvelope,
+  type HttpHooks,
+} from "../src";
 
 interface User {
   id: number;
@@ -26,5 +32,17 @@ describe("public type contracts", () => {
     expectTypeOf(axiosAdapter({ withCredentials: true }).name).toEqualTypeOf<string>();
     expectTypeOf(fetchAdapter({ init: { credentials: "include" } }).name).toEqualTypeOf<string>();
     expectTypeOf(ofetchAdapter({ retry: 2, retryDelay: 100 }).name).toEqualTypeOf<string>();
+  });
+
+  it("types reusable middleware and classified response errors", () => {
+    const middleware = createMiddleware({
+      onResponseError: (ctx) => {
+        expectTypeOf(ctx.error).toEqualTypeOf<Error>();
+        expectTypeOf(ctx.response.status).toEqualTypeOf<number>();
+        expectTypeOf(ctx.error).toMatchTypeOf<BizError | Error>();
+      },
+    });
+
+    expectTypeOf(mergeMiddleware(middleware, undefined)).toEqualTypeOf<HttpHooks>();
   });
 });

@@ -114,14 +114,21 @@ export function resolveEnvelope<TBody = unknown, TValue = unknown>(
   return fromMap(res, option ?? {});
 }
 
-export function throwIfNeeded(resolved: ResolvedEnvelope): void {
-  if (resolved.kind === "ok") return;
-  if (resolved.error) throw resolved.error;
-  throw new BizError(
-    resolved.code,
-    resolved.msg || "request failed",
-    resolved.body,
-    resolved.source,
-    resolved.kind,
+export function errorFromEnvelope(resolved: ResolvedEnvelope): Error | undefined {
+  if (resolved.kind === "ok") return undefined;
+  return (
+    resolved.error ??
+    new BizError(
+      resolved.code,
+      resolved.msg || "request failed",
+      resolved.body,
+      resolved.source,
+      resolved.kind,
+    )
   );
+}
+
+export function throwIfNeeded(resolved: ResolvedEnvelope): void {
+  const error = errorFromEnvelope(resolved);
+  if (error) throw error;
 }

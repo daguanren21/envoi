@@ -57,7 +57,8 @@ Use a query cache for server-owned data that needs stale time, cross-component r
 
 Use a client store for session state, unsaved workflows, and UI state. Copying the same remote object into both systems creates extra synchronization paths.
 
-## Vue versions
+## Framework boundary
 
-- Vue 3: Pinia Colada or TanStack Query.
-- Vue 2.7: TanStack Vue Query still tests Vue 2.7; VueUse 11 is suitable for lightweight async state without a shared cache.
+envoi has no Vue, React, or state-library runtime dependency. Choose the query
+library already used by the application and pass it the same `Promise<T>` API
+function.

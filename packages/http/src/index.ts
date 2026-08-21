@@ -5,6 +5,7 @@ export { createHttp } from "./create-http";
 export { defineEnvelope } from "./envelope";
 export { BizError, type ErrorSource, type ResultKind } from "./error";
 export { auth, legacyStringBody } from "./middleware";
+export { createMiddleware, mergeMiddleware } from "./middleware-utils";
 export type {
   Adapter,
   AdapterName,
