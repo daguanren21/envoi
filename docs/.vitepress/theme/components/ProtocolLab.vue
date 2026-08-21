@@ -36,7 +36,9 @@ interface Outcome {
 
 const props = withDefaults(defineProps<Props>(), { lang: "en" });
 const selectedKey = shallowRef<ScenarioKey>("success");
+const hydrated = shallowRef(false);
 const running = shallowRef(false);
+const completedRuns = shallowRef(0);
 const outcome = shallowRef<Outcome>();
 
 const text = computed(() =>
@@ -45,11 +47,17 @@ const text = computed(() =>
         eyebrow: "协议实验台",
         title: "一眼看清 response 如何变成 T",
         description:
-          "下面运行的是仓库里的真实 createHttp。切换后端返回，观察 resolve 或 BizError。",
+          "下面运行的是仓库里的真实 createHttp。选择后端返回，再执行请求并观察 resolve 或 BizError。",
         response: "后端 response",
         result: "envoi 输出",
         run: "运行请求",
+        rerun: "再次运行",
+        booting: "正在启动",
         running: "处理中",
+        ready: "等待运行",
+        idle: "// 选择一个场景，然后点击“运行请求”",
+        inFlight: "// 正在执行 createHttp...",
+        completed: "已完成请求",
         value: "Promise resolve",
         error: "Promise reject",
         real: "真实 envoi client",
@@ -58,11 +66,17 @@ const text = computed(() =>
         eyebrow: "Protocol workbench",
         title: "See exactly how a response becomes T",
         description:
-          "This demo runs the repository's real createHttp. Change the backend response and inspect the value or BizError.",
+          "This demo runs the repository's real createHttp. Choose a backend response, run it, and inspect the resolved value or BizError.",
         response: "Backend response",
         result: "envoi outcome",
         run: "Run request",
+        rerun: "Run again",
+        booting: "Starting client",
         running: "Running",
+        ready: "Ready to run",
+        idle: "// Choose a scenario, then click Run request",
+        inFlight: "// Executing createHttp...",
+        completed: "Completed run",
         value: "Promise resolved",
         error: "Promise rejected",
         real: "real envoi client",
@@ -127,14 +141,42 @@ const responseText = computed(() =>
     2,
   ),
 );
-const outcomeText = computed(() => JSON.stringify(outcome.value?.payload ?? null, null, 2));
+const outcomeState = computed(() => {
+  if (running.value) return "running";
+  return outcome.value?.state ?? "idle";
+});
+const outcomeStatus = computed(() => {
+  if (running.value) return text.value.running;
+  if (outcome.value?.state === "error") return text.value.error;
+  if (outcome.value?.state === "value") return text.value.value;
+  return text.value.ready;
+});
+const outcomeType = computed(() => {
+  if (running.value) return "createHttp()";
+  return outcome.value?.type ?? "—";
+});
+const outcomeText = computed(() => {
+  if (running.value) return text.value.inFlight;
+  if (!outcome.value) return text.value.idle;
+  return JSON.stringify(outcome.value.payload, null, 2);
+});
+const runLabel = computed(() => {
+  if (!hydrated.value) return text.value.booting;
+  if (running.value) return `${text.value.running}…`;
+  return outcome.value ? text.value.rerun : text.value.run;
+});
 
 async function runScenario(): Promise<void> {
+  if (!hydrated.value || running.value) return;
+
   running.value = true;
+  outcome.value = undefined;
   const scenario = selected.value;
   const adapter: Adapter = {
     name: "protocol-lab",
     async request(): Promise<HttpResponse> {
+      // Keep the real client transition visible instead of resolving in the same frame.
+      await new Promise<void>((resolve) => setTimeout(resolve, 420));
       return {
         status: scenario.status,
         statusText: scenario.statusText,
@@ -172,16 +214,20 @@ async function runScenario(): Promise<void> {
       };
     }
   } finally {
+    completedRuns.value += 1;
     running.value = false;
   }
 }
 
-async function selectScenario(key: ScenarioKey): Promise<void> {
+function selectScenario(key: ScenarioKey): void {
+  if (running.value) return;
   selectedKey.value = key;
-  await runScenario();
+  outcome.value = undefined;
 }
 
-onMounted(runScenario);
+onMounted(() => {
+  hydrated.value = true;
+});
 </script>
 
 <template>
@@ -201,6 +247,7 @@ onMounted(runScenario);
         :key="scenario.key"
         type="button"
         :aria-pressed="selectedKey === scenario.key"
+        :disabled="!hydrated || running"
         @click="selectScenario(scenario.key)"
       >
         {{ scenario.label[props.lang] }}
@@ -216,21 +263,32 @@ onMounted(runScenario);
         <pre><code>{{ responseText }}</code></pre>
       </article>
 
-      <article class="protocol-lab__panel protocol-lab__panel--outcome" aria-live="polite">
+      <article
+        class="protocol-lab__panel protocol-lab__panel--outcome"
+        :class="`is-${outcomeState}`"
+        :aria-busy="running"
+        aria-live="polite"
+      >
         <div class="protocol-lab__panel-head">
           <span>{{ text.result }}</span>
-          <code :class="`is-${outcome?.state ?? 'value'}`">
-            {{ outcome?.state === "error" ? text.error : text.value }}
-          </code>
+          <code :class="`is-${outcomeState}`">{{ outcomeStatus }}</code>
         </div>
-        <strong>{{ outcome?.type ?? "—" }}</strong>
+        <strong>{{ outcomeType }}</strong>
         <pre><code>{{ outcomeText }}</code></pre>
       </article>
     </div>
 
-    <button class="protocol-lab__run" type="button" :disabled="running" @click="runScenario">
-      {{ running ? text.running : text.run }}
-    </button>
+    <div class="protocol-lab__actions">
+      <button
+        class="protocol-lab__run"
+        type="button"
+        :disabled="!hydrated || running"
+        @click="runScenario"
+      >
+        {{ runLabel }}
+      </button>
+      <span v-if="outcome" aria-live="polite">{{ text.completed }} #{{ completedRuns }}</span>
+    </div>
   </section>
 </template>
 
@@ -348,6 +406,11 @@ onMounted(runScenario);
   background: color-mix(in srgb, var(--envoi-coral), transparent 88%);
 }
 
+.protocol-lab__scenarios button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
 .protocol-lab__panels {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
@@ -390,6 +453,18 @@ onMounted(runScenario);
   color: var(--envoi-teal);
 }
 
+.protocol-lab__panel-head code.is-idle {
+  color: var(--envoi-lab-muted);
+}
+
+.protocol-lab__panel-head code.is-running {
+  color: var(--envoi-amber);
+}
+
+.protocol-lab__panel--outcome.is-running {
+  border-color: color-mix(in srgb, var(--envoi-amber), transparent 42%);
+}
+
 .protocol-lab__panel pre {
   min-height: 238px;
   max-height: 360px;
@@ -416,9 +491,24 @@ onMounted(runScenario);
   padding-top: 12px;
 }
 
+.protocol-lab__actions {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.protocol-lab__actions > span {
+  color: var(--envoi-lab-muted);
+  font-family: var(--vp-font-family-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
 .protocol-lab__run {
   min-height: 46px;
-  margin-top: 16px;
+  margin: 0;
   padding: 0 20px;
   border: 0;
   border-radius: 11px;
@@ -427,6 +517,14 @@ onMounted(runScenario);
   box-shadow: 0 10px 26px var(--vp-c-brand-soft);
   font-weight: 750;
   cursor: pointer;
+}
+
+.protocol-lab__run:not(:disabled):hover {
+  filter: brightness(1.06);
+}
+
+.protocol-lab__run:not(:disabled):active {
+  transform: translateY(1px);
 }
 
 .protocol-lab__run:disabled {
@@ -468,6 +566,15 @@ onMounted(runScenario);
   .protocol-lab__panel pre {
     min-height: 190px;
     font-size: 12px;
+  }
+
+  .protocol-lab__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .protocol-lab__actions > span {
+    text-align: center;
   }
 
   .protocol-lab__run {

@@ -4,11 +4,9 @@ Hooks 用来复用公共请求和响应行为，不会把 HTTP 客户端绑定�
 
 ## 生命周期
 
-```text
-onRequest -> adapter -> onResponse -> envelope -> T
-                  \-> onRequestError
-分类后的失败 ---------------------> onResponseError(ctx.error) -> throw
-```
+<LifecycleFlow lang="zh" />
+
+`onRequestError` 处理 adapter 抛出的 error。`onResponseError` 只在 adapter 已经返回 response、envelope 分类为 non-ok 后执行。
 
 hook 或 hook 数组按顺序执行。返回值不会替换 context，需要直接修改 context。
 

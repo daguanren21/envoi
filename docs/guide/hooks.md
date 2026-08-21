@@ -4,11 +4,9 @@ Hooks share request and response behavior without coupling the HTTP client to a 
 
 ## Lifecycle
 
-```text
-onRequest -> adapter -> onResponse -> envelope -> T
-                  \-> onRequestError
-classified non-ok ----------------> onResponseError(ctx.error) -> throw
-```
+<LifecycleFlow lang="en" />
+
+`onRequestError` handles errors thrown by the adapter. `onResponseError` runs only after the adapter returned a response and the envelope classified it as non-ok.
 
 A hook or hook array runs sequentially. Return values are ignored; mutate the context directly.
 
