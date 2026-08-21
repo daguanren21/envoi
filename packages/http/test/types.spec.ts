@@ -1,13 +1,14 @@
-import { create as createAxios } from "axios";
 import { describe, expectTypeOf, it } from "vitest";
 import {
   axiosAdapter,
   BizError,
   createHttp,
+  createAxiosInstance,
   createMiddleware,
   fetchAdapter,
   mergeMiddleware,
   ofetchAdapter,
+  type AxiosInstance,
   type DefaultEnvelope,
   type HttpHooks,
 } from "../src";
@@ -31,7 +32,9 @@ describe("public type contracts", () => {
 
   it("provides typed native adapter options", () => {
     expectTypeOf(axiosAdapter({ withCredentials: true }).name).toEqualTypeOf<string>();
-    expectTypeOf(axiosAdapter(createAxios()).name).toEqualTypeOf<string>();
+    const instance = createAxiosInstance({ baseURL: "/api", withCredentials: true });
+    expectTypeOf(instance).toEqualTypeOf<AxiosInstance>();
+    expectTypeOf(axiosAdapter(instance).name).toEqualTypeOf<string>();
     expectTypeOf(fetchAdapter({ init: { credentials: "include" } }).name).toEqualTypeOf<string>();
     expectTypeOf(ofetchAdapter({ retry: 2, retryDelay: 100 }).name).toEqualTypeOf<string>();
   });

@@ -4,10 +4,9 @@ import { once } from "node:events";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { create as createAxios } from "axios";
 import AxiosMockAdapter from "axios-mock-adapter";
 import { withQuery } from "ufo";
-import { axiosAdapter } from "../src/adapters/axios";
+import { axiosAdapter, createAxiosInstance } from "../src/adapters/axios";
 import { createHttp } from "../src/create-http";
 import type { AdapterName } from "../src/types";
 
@@ -89,8 +88,20 @@ describe.each(adapters)("%s adapter conformance", (adapter) => {
   });
 });
 describe("axios adapter instance integration", () => {
+  it("creates a configurable shared instance through the public factory", () => {
+    const instance = createAxiosInstance({
+      baseURL: "/api",
+      timeout: 15_000,
+      withCredentials: true,
+    });
+
+    expect(instance.defaults.baseURL).toBe("/api");
+    expect(instance.defaults.timeout).toBe(15_000);
+    expect(instance.defaults.withCredentials).toBe(true);
+  });
+
   it("uses an existing instance without bypassing its interceptors", async () => {
-    const instance = createAxios();
+    const instance = createAxiosInstance();
     let interceptorCalls = 0;
     let mergeEnabled = false;
     instance.interceptors.request.use((config) => {
@@ -110,7 +121,7 @@ describe("axios adapter instance integration", () => {
   });
 
   it("uses axios-mock-adapter installed on the same instance", async () => {
-    const instance = createAxios();
+    const instance = createAxiosInstance();
     const mock = new AxiosMockAdapter(instance, { onNoMatch: "throwException" });
     mock.onGet("/api/users/42").reply(200, {
       code: 200,

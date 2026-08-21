@@ -12,6 +12,14 @@ export type AxiosAdapterOptions = Omit<
   "baseURL" | "headers" | "timeout" | "params" | "paramsSerializer" | "validateStatus"
 >;
 
+export type AxiosInstanceOptions = CreateAxiosDefaults;
+export type { AxiosInstance } from "axios";
+
+/** Create the shared axios instance without importing axios in application code. */
+export function createAxiosInstance(options: AxiosInstanceOptions = {}): AxiosInstance {
+  return createAxios(options);
+}
+
 function toAxiosResponseType(type: HttpRequest["responseType"]): ResponseType | undefined {
   if (type === "arrayBuffer") return "arraybuffer";
   if (type === "stream") return "stream";
@@ -33,7 +41,7 @@ function configFromMeta(meta: HttpRequest["meta"]): AxiosRequestConfig {
 export function axiosAdapter(instance: AxiosInstance): Adapter;
 export function axiosAdapter(options?: AxiosAdapterOptions): Adapter;
 export function axiosAdapter(input: AxiosInstance | AxiosAdapterOptions = {}): Adapter {
-  const instance = typeof input === "function" ? input : createAxios(input);
+  const instance = typeof input === "function" ? input : createAxiosInstance(input);
 
   return {
     name: "axios",

@@ -1,4 +1,10 @@
-export { axiosAdapter, type AxiosAdapterOptions } from "./adapters/axios";
+export {
+  axiosAdapter,
+  createAxiosInstance,
+  type AxiosAdapterOptions,
+  type AxiosInstance,
+  type AxiosInstanceOptions,
+} from "./adapters/axios";
 export { fetchAdapter, type FetchAdapterOptions } from "./adapters/fetch";
 export { ofetchAdapter, type OfetchAdapterOptions } from "./adapters/ofetch";
 export { createHttp } from "./create-http";
