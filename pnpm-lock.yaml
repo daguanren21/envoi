@@ -9,6 +9,9 @@ catalogs:
     axios:
       specifier: 1.19.0
       version: 1.19.0
+    axios-mock-adapter:
+      specifier: 2.1.0
+      version: 2.1.0
     tsdown:
       specifier: 0.22.14
       version: 0.22.14
@@ -84,6 +87,9 @@ importers:
         specifier: 'catalog:'
         version: 1.6.4
     devDependencies:
+      axios-mock-adapter:
+        specifier: 'catalog:'
+        version: 2.1.0(axios@1.19.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0))
       tsdown:
         specifier: 'catalog:'
         version: 0.22.14(@arethetypeswrong/core@0.18.5)(publint@0.3.24)(typescript@5.9.3)(unrun@0.2.39)
@@ -1279,6 +1285,11 @@ packages:
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
 
+  axios-mock-adapter@2.1.0:
+    resolution: {integrity: sha512-AZUe4OjECGCNNssH8SOdtneiQELsqTsat3SQQCWLPjN436/H+L9AjWfV7bF+Zg/YL9cgbhrz5671hoh+Tbn98w==}
+    peerDependencies:
+      axios: '>= 0.17.0'
+
   axios@1.19.0:
     resolution: {integrity: sha512-ht/iuYZXEjFxLH/Hkezgd7m6JKlHHXEUSneaDz8uZe1Gj5QZtCnpyDsckvAiEnT89OEbCLmnte4R4sn7P0EKFw==}
 
@@ -1681,6 +1692,10 @@ packages:
 
   is-arrayish@0.2.1:
     resolution: {integrity: sha512-zz06S8t0ozoDXMG+ube26zeCTNXcKIPJZJi8hBrF4idCLms4CG9QtK7qBl1boi5ODzFpjswb5JPmHCbMpjaYzg==}
+
+  is-buffer@2.0.5:
+    resolution: {integrity: sha512-i2R6zNFDwgEHJyQUtJEk0XFi1i0dPFn/oqjK3/vPCcDeJvW5NQ83V8QbicfF1SupOaB0h8ntgBC2YiE7dfyctQ==}
+    engines: {node: '>=4'}
 
   is-fullwidth-code-point@3.0.0:
     resolution: {integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==}
@@ -3393,6 +3408,12 @@ snapshots:
 
   asynckit@0.4.0: {}
 
+  axios-mock-adapter@2.1.0(axios@1.19.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)):
+    dependencies:
+      axios: 1.19.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
+      fast-deep-equal: 3.1.3
+      is-buffer: 2.0.5
+
   axios@1.19.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0):
     dependencies:
       follow-redirects: 1.16.0(debug@4.4.3(supports-color@7.2.0))
@@ -3791,6 +3812,8 @@ snapshots:
   ini@4.1.1: {}
 
   is-arrayish@0.2.1: {}
+
+  is-buffer@2.0.5: {}
 
   is-fullwidth-code-point@3.0.0: {}
 

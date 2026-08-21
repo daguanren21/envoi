@@ -8,6 +8,7 @@ catalog:
   tsdown: 0.22.14
   vitest: 4.1.11
   axios: 1.19.0
+  axios-mock-adapter: 2.1.0
   ufo: 1.6.4
 
 allowBuilds:

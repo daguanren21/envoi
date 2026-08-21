@@ -5,6 +5,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { create as createAxios } from "axios";
+import AxiosMockAdapter from "axios-mock-adapter";
 import { withQuery } from "ufo";
 import { axiosAdapter } from "../src/adapters/axios";
 import { createHttp } from "../src/create-http";
@@ -106,5 +107,26 @@ describe("axios adapter instance integration", () => {
     await http.get("/echo", { meta: { axios: { merge: true } } });
     expect(interceptorCalls).toBe(1);
     expect(mergeEnabled).toBe(true);
+  });
+
+  it("uses axios-mock-adapter installed on the same instance", async () => {
+    const instance = createAxios();
+    const mock = new AxiosMockAdapter(instance, { onNoMatch: "throwException" });
+    mock.onGet("/api/users/42").reply(200, {
+      code: 200,
+      msg: "ok",
+      data: { id: 42, name: "Ada" },
+    });
+    const http = createHttp({
+      adapter: axiosAdapter(instance),
+      defaults: { baseURL: "/api" },
+    });
+
+    try {
+      await expect(http.get("/users/42")).resolves.toEqual({ id: 42, name: "Ada" });
+      expect(mock.history.get).toHaveLength(1);
+    } finally {
+      mock.restore();
+    }
   });
 });
