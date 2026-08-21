@@ -127,6 +127,37 @@ describe("auth hook", () => {
     await expect(http.get("/x")).rejects.toBe(replacement);
   });
 
+  it("keeps the classified error visible when ignoreResponseError resolves", async () => {
+    let responseError: Error | undefined;
+    let successError: unknown;
+    let finalError: unknown;
+    const body = { reason: "maintenance" };
+    const http = createHttp({
+      adapter: mockAdapter(() => ({
+        status: 503,
+        statusText: "Service Unavailable",
+        headers: {},
+        body,
+      })),
+      hooks: {
+        onResponseError: (ctx) => {
+          responseError = ctx.error;
+        },
+        onSuccess: (ctx) => {
+          successError = ctx.error;
+        },
+        onFinally: (ctx) => {
+          finalError = ctx.error;
+        },
+      },
+    });
+
+    await expect(http.get("/health", { ignoreResponseError: true })).resolves.toBe(body);
+    expect(responseError).toBeInstanceOf(BizError);
+    expect(successError).toBe(responseError);
+    expect(finalError).toBe(responseError);
+  });
+
   it("runs success and finally hooks in global then request order", async () => {
     const order: string[] = [];
     const http = createHttp({

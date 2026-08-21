@@ -44,6 +44,8 @@ const http = createHttp({
 
 前一个 cleanup hook 失败后，后面的 `onFinally` 仍会执行。请求和 cleanup 同时失败时，Promise reject `AggregateError`：第一个元素是请求 error，后面按声明顺序排列 cleanup errors。
 
+`ignoreResponseError: true` 只取消 reject，不会清除分类结果。调用方拿到 response body 时，`onResponseError`、`onSuccess` 和 `onFinally` 仍能读取分类后的 `ctx.error`。
+
 ## 单请求 hooks
 
 单个接口的例外放在请求参数里，避免全局 hook 根据 URL 分支。

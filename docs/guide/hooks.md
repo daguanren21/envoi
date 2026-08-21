@@ -44,6 +44,8 @@ const http = createHttp({
 
 `onFinally` hooks all run even when an earlier cleanup hook fails. If the request and cleanup both fail, the promise rejects with an `AggregateError`: request error first, cleanup errors after it in declaration order.
 
+`ignoreResponseError: true` suppresses rejection, not classification. `onResponseError`, `onSuccess`, and `onFinally` all receive the classified `ctx.error` while the caller receives the response body.
+
 ## Request-local hooks
 
 Use local hooks for one endpoint instead of adding URL branches to a global hook.
