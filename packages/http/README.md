@@ -7,6 +7,8 @@
 
 A typed HTTP client that turns transport responses and backend envelopes into a stable `Promise<T>`.
 
+ESM-only. Supports Node.js 18+ and browsers with the selected adapter's required APIs.
+
 ```bash
 pnpm add @envoijs/http
 ```
@@ -123,6 +125,19 @@ createHttp({ adapter: axiosAdapter({ withCredentials: true }) });
 createHttp({ adapter: fetchAdapter({ init: { credentials: "include" } }) });
 createHttp({ adapter: ofetchAdapter({ retry: 2 }) });
 ```
+
+An existing `AxiosInstance` keeps its interceptors and wrappers:
+
+```ts
+useAxiosPlugin(instance).plugin(merge());
+const http = createHttp({ adapter: axiosAdapter(instance) });
+
+await http.get("/orders", {
+  meta: { axios: { merge: true } },
+});
+```
+
+The [adapter guide](https://daguanren21.github.io/envoi/guide/adapters#existing-axios-instances-and-axios-plugins) documents plugin compatibility boundaries.
 
 Custom transports implement `{ name, request }` and return every HTTP response, including 4xx/5xx.
 

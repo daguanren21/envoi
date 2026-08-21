@@ -1,3 +1,4 @@
+import { create as createAxios } from "axios";
 import { describe, expectTypeOf, it } from "vitest";
 import {
   axiosAdapter,
@@ -30,6 +31,7 @@ describe("public type contracts", () => {
 
   it("provides typed native adapter options", () => {
     expectTypeOf(axiosAdapter({ withCredentials: true }).name).toEqualTypeOf<string>();
+    expectTypeOf(axiosAdapter(createAxios()).name).toEqualTypeOf<string>();
     expectTypeOf(fetchAdapter({ init: { credentials: "include" } }).name).toEqualTypeOf<string>();
     expectTypeOf(ofetchAdapter({ retry: 2, retryDelay: 100 }).name).toEqualTypeOf<string>();
   });

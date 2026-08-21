@@ -20,7 +20,7 @@
     "release:version": "pnpm --dir packages/http version --no-git-tag-version --allow-same-version",
     "release:pack": "pnpm --dir packages/http pack --pack-destination ../../release",
     "release:dry-run": "pnpm --filter @envoijs/http publish --dry-run --no-git-checks",
-    "package:check": "publint packages/http && attw --pack packages/http",
+    "package:check": "publint packages/http && attw --pack --profile esm-only packages/http",
     "verify": "pnpm audit && pnpm lint && pnpm fmt:check && pnpm typecheck && pnpm test && pnpm build && pnpm docs:build && pnpm package:check",
     "ci": "pnpm verify",
     "commitlint": "commitlint --edit"

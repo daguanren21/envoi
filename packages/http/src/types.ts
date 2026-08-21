@@ -140,6 +140,7 @@ export interface CallOptions {
   ignoreResponseError?: boolean;
   /** Hooks for this request only. Global hooks run first. */
   hooks?: HttpHooks;
+  /** Namespaced adapter/plugin data, for example `meta.axios`. */
   meta?: Record<string, unknown>;
 }
 

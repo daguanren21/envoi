@@ -2,10 +2,10 @@ import { defineConfig } from "tsdown";
 
 export default defineConfig({
   entry: ["src/index.ts"],
-  format: ["esm", "cjs"],
+  format: "esm",
   dts: { generator: "oxc" },
-  outExtensions({ format }) {
-    return { js: format === "cjs" ? ".cjs" : ".js" };
+  outExtensions() {
+    return { js: ".js" };
   },
   deps: { neverBundle: ["axios", "ofetch", "ufo"] },
 });

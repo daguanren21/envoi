@@ -21,7 +21,7 @@ Required stages:
 3. oxfmt;
 4. TypeScript;
 5. Vitest;
-6. tsdown ESM/CJS/declarations;
+6. tsdown ESM and declarations;
 7. publint;
 8. Are The Types Wrong.
 

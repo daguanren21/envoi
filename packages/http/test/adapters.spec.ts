@@ -4,7 +4,9 @@ import { once } from "node:events";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { create as createAxios } from "axios";
 import { withQuery } from "ufo";
+import { axiosAdapter } from "../src/adapters/axios";
 import { createHttp } from "../src/create-http";
 import type { AdapterName } from "../src/types";
 
@@ -83,5 +85,26 @@ describe.each(adapters)("%s adapter conformance", (adapter) => {
     await expect(
       http.get("/slow", { timeout: 10, signal: controller.signal }),
     ).rejects.toBeDefined();
+  });
+});
+describe("axios adapter instance integration", () => {
+  it("uses an existing instance without bypassing its interceptors", async () => {
+    const instance = createAxios();
+    let interceptorCalls = 0;
+    let mergeEnabled = false;
+    instance.interceptors.request.use((config) => {
+      interceptorCalls += 1;
+      mergeEnabled = (config as typeof config & { merge?: boolean }).merge === true;
+      return config;
+    });
+    const http = createHttp({
+      adapter: axiosAdapter(instance),
+      defaults: { baseURL },
+      envelope: false,
+    });
+
+    await http.get("/echo", { meta: { axios: { merge: true } } });
+    expect(interceptorCalls).toBe(1);
+    expect(mergeEnabled).toBe(true);
   });
 });

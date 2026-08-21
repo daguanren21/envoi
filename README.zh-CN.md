@@ -276,6 +276,23 @@ createHttp({
 });
 ```
 
+已有 axios instance 可以保留 interceptors 和插件 wrapper：
+
+```ts
+const instance = axios.create();
+useAxiosPlugin(instance).plugin(merge());
+
+const http = createHttp({
+  adapter: axiosAdapter(instance),
+});
+
+await http.get("/orders", {
+  meta: { axios: { merge: true } },
+});
+```
+
+注册顺序、retry、transform 和 response contract 的边界见 [axios plugin 接入说明](https://daguanren21.github.io/envoi/zh/guide/adapters#接入现有-axios-instance-与-axios-plugins)。
+
 其他 transport 实现统一 adapter contract：
 
 ```ts
@@ -406,7 +423,7 @@ await http.post("/legacy-form", "name=Ada", {
 
 - Node.js 18+
 - 浏览器能力取决于所选 adapter
-- ESM 和 CommonJS
+- 仅提供 ESM
 - 包含 TypeScript declarations
 
 ## Agent skill

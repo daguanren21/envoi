@@ -25,6 +25,58 @@ const http = createHttp({
 });
 ```
 
+### 接入现有 axios instance 与 `axios-plugins`
+
+项目已经安装 interceptors 或 [`halo951/axios-plugins`](https://github.com/halo951/axios-plugins) 时，把同一个 `AxiosInstance` 交给 adapter：
+
+```ts
+import axios from "axios";
+import { useAxiosPlugin } from "axios-plugins/core";
+import { merge } from "axios-plugins/plugins/merge";
+import { normalize } from "axios-plugins/plugins/normalize";
+import { axiosAdapter, createHttp } from "@envoijs/http";
+
+const instance = axios.create({ withCredentials: true });
+
+useAxiosPlugin(instance).plugin(normalize()).plugin(merge());
+
+export const http = createHttp({
+  adapter: axiosAdapter(instance),
+  defaults: {
+    baseURL: "/api",
+    timeout: 15_000,
+  },
+});
+```
+
+插件需要在创建 envoi client 前注册。`axiosAdapter(instance)` 调用 `instance.request()`，插件 wrapper 和原有 interceptors 都会执行。envoi 不会把 instance 当函数调用，因此不需要 `useAxiosPlugin(...).wrap()`。
+
+单请求 plugin 参数放进带命名空间的 metadata：
+
+```ts
+await http.get("/orders", {
+  meta: {
+    axios: {
+      merge: true,
+    },
+  },
+});
+```
+
+axios adapter 先合并 `meta.axios`，随后写入 envoi 确定的 URL、method、body、headers、signal、timeout、responseType 和 `validateStatus`。plugin 参数不能覆盖这些协议字段。
+
+#### 兼容边界
+
+| Plugin 行为                                                 | 接入规则                                                                                              |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| merge、debounce、cache、loading、cancel、mock、请求参数整理 | plugin 最终返回完整 `AxiosResponse` 时可以接入                                                        |
+| response transform                                          | 必须返回完整 `AxiosResponse`；返回 `response.data` 会破坏 adapter contract                            |
+| retry                                                       | transport error 可以重试。envoi 固定 `validateStatus: () => true`，HTTP 4xx、5xx 会作为 response 返回 |
+| throttle give-up                                            | 使用抛错模式。静默或空结果不满足 `AxiosResponse` contract                                             |
+| 业务 code 解包或 reject                                     | 留在 envoi envelope，HTTP 与业务状态只维护一套分类规则                                                |
+
+该插件的 request hooks 按注册顺序执行，response、error 和 completion hooks 反向执行。依赖顺序的 plugins 应在 axios instance 旁集中注册。这个接入边界不依赖前端框架。
+
 ## Native fetch
 
 ```ts

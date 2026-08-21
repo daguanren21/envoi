@@ -38,6 +38,14 @@ ofetchAdapter({ retry: 2, retryDelay: 250 });
 
 Common baseURL/headers/timeout stay in `createHttp.defaults`.
 
+Existing axios interceptors and wrappers MUST use the same instance:
+
+```ts
+createHttp({ adapter: axiosAdapter(instance) });
+```
+
+Register plugins before creating the envoi client. Pass per-request native/plugin fields through `meta.axios`. Response plugins MUST preserve the complete `AxiosResponse`; envelope extraction remains in envoi.
+
 ## Custom adapters
 
 Do not add ky/got/native-bridge conditionals to core. Implement the public contract and pass the object to `createHttp`.

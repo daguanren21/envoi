@@ -276,6 +276,23 @@ createHttp({
 });
 ```
 
+Existing axios instances keep their interceptors and wrappers:
+
+```ts
+const instance = axios.create();
+useAxiosPlugin(instance).plugin(merge());
+
+const http = createHttp({
+  adapter: axiosAdapter(instance),
+});
+
+await http.get("/orders", {
+  meta: { axios: { merge: true } },
+});
+```
+
+See [axios plugin integration](https://daguanren21.github.io/envoi/guide/adapters#existing-axios-instances-and-axios-plugins) for ordering, retry, transform, and response-contract boundaries.
+
 Any other transport implements the adapter contract:
 
 ```ts
@@ -408,7 +425,7 @@ Projects migrating axios 0.x form-style strings can opt into `legacyStringBody()
 
 - Node.js 18+
 - Browsers with the selected adapter's required APIs
-- ESM and CommonJS
+- ESM only
 - TypeScript declarations included
 
 ## Agent guidance

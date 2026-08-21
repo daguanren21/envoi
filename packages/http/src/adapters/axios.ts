@@ -1,5 +1,6 @@
 import {
   create as createAxios,
+  type AxiosInstance,
   type AxiosRequestConfig,
   type CreateAxiosDefaults,
   type ResponseType,
@@ -17,18 +18,28 @@ function toAxiosResponseType(type: HttpRequest["responseType"]): ResponseType | 
   return type;
 }
 
+function configFromMeta(meta: HttpRequest["meta"]): AxiosRequestConfig {
+  const config = meta.axios;
+  if (!config || typeof config !== "object" || Array.isArray(config)) return {};
+  return config as AxiosRequestConfig;
+}
+
 /**
- * Axios adapter using the axios version owned by @envoijs/http.
+ * Axios adapter using the axios version owned by @envoijs/http, or an existing
+ * instance whose interceptors and request wrappers must be preserved.
  * Common baseURL/headers/timeout belong to createHttp.defaults; native options
  * such as withCredentials belong here.
  */
-export function axiosAdapter(options: AxiosAdapterOptions = {}): Adapter {
-  const instance = createAxios(options);
+export function axiosAdapter(instance: AxiosInstance): Adapter;
+export function axiosAdapter(options?: AxiosAdapterOptions): Adapter;
+export function axiosAdapter(input: AxiosInstance | AxiosAdapterOptions = {}): Adapter {
+  const instance = typeof input === "function" ? input : createAxios(input);
 
   return {
     name: "axios",
     async request(req: HttpRequest): Promise<HttpResponse> {
       const config: AxiosRequestConfig = {
+        ...configFromMeta(req.meta),
         url: req.url,
         method: req.method,
         headers: req.headers,

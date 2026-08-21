@@ -27,6 +27,58 @@ const http = createHttp({
 });
 ```
 
+### Existing axios instances and `axios-plugins`
+
+Pass an existing `AxiosInstance` when a project already installs interceptors or a wrapper such as [`halo951/axios-plugins`](https://github.com/halo951/axios-plugins):
+
+```ts
+import axios from "axios";
+import { useAxiosPlugin } from "axios-plugins/core";
+import { merge } from "axios-plugins/plugins/merge";
+import { normalize } from "axios-plugins/plugins/normalize";
+import { axiosAdapter, createHttp } from "@envoijs/http";
+
+const instance = axios.create({ withCredentials: true });
+
+useAxiosPlugin(instance).plugin(normalize()).plugin(merge());
+
+export const http = createHttp({
+  adapter: axiosAdapter(instance),
+  defaults: {
+    baseURL: "/api",
+    timeout: 15_000,
+  },
+});
+```
+
+Register plugins before creating the envoi client. `axiosAdapter(instance)` calls `instance.request()`, so the plugin wrapper and existing interceptors remain active. `useAxiosPlugin(...).wrap()` is unnecessary because envoi never calls the instance as a function.
+
+Per-request axios plugin fields go through the namespaced metadata escape hatch:
+
+```ts
+await http.get("/orders", {
+  meta: {
+    axios: {
+      merge: true,
+    },
+  },
+});
+```
+
+The axios adapter merges `meta.axios` into `AxiosRequestConfig`, then applies envoi's canonical URL, method, body, headers, signal, timeout, response type, and `validateStatus`. Plugin options cannot override those protocol invariants.
+
+#### Compatibility boundaries
+
+| Plugin behavior                                                      | Rule                                                                                                     |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| merge, debounce, cache, loading, cancel, mock, request normalization | Safe when the plugin ultimately returns a complete `AxiosResponse`                                       |
+| response transform                                                   | Must return the complete `AxiosResponse`; returning `response.data` breaks the adapter contract          |
+| retry                                                                | Transport errors are safe. HTTP 4xx/5xx remain responses because envoi sets `validateStatus: () => true` |
+| throttle give-up                                                     | Use the throwing mode. A silent or empty result is not an `AxiosResponse`                                |
+| business-code unwrap or reject                                       | Keep it in the envoi envelope so HTTP and business classification have one owner                         |
+
+The plugin library runs request-side hooks forward and response/error/completion hooks in reverse registration order. Keep order-dependent plugins beside the axios instance. This integration boundary has no framework runtime dependency.
+
 ## Native fetch
 
 ```ts

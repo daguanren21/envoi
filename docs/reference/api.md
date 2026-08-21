@@ -53,6 +53,8 @@ interface CallOptions {
 
 `data` aliases `body`; `params` aliases `query`. Explicit `null`, `false`, `0`, and empty-string bodies are preserved.
 
+Adapter-specific request fields use namespaced `meta`. The axios adapter merges `meta.axios` into its native config before enforcing the normalized request fields.
+
 ## `DefaultEnvelope<T>`
 
 ```ts
@@ -85,7 +87,8 @@ interface HttpHooks {
 ## Adapters
 
 ```ts
-axiosAdapter(options?): Adapter
+axiosAdapter(options?: AxiosAdapterOptions): Adapter
+axiosAdapter(instance: AxiosInstance): Adapter
 fetchAdapter(options?): Adapter
 ofetchAdapter(options?): Adapter
 ```

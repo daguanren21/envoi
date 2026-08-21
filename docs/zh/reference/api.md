@@ -53,6 +53,8 @@ interface CallOptions {
 
 `data` 是 `body` 的别名，`params` 是 `query` 的别名。`null`、`false`、`0` 和空字符串 body 都会保留。
 
+adapter 专用参数放在带命名空间的 `meta` 中。axios adapter 会把 `meta.axios` 合并到原生 config，再写入规范化后的请求字段。
+
 ## `DefaultEnvelope<T>`
 
 ```ts
@@ -85,7 +87,8 @@ interface HttpHooks {
 ## Adapters
 
 ```ts
-axiosAdapter(options?): Adapter
+axiosAdapter(options?: AxiosAdapterOptions): Adapter
+axiosAdapter(instance: AxiosInstance): Adapter
 fetchAdapter(options?): Adapter
 ofetchAdapter(options?): Adapter
 ```
