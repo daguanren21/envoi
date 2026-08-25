@@ -38,7 +38,9 @@ export class BizError<TBody = unknown> extends Error {
     readonly msg: string,
     /** Raw parsed body (or HTTP error payload). */
     readonly body: TBody,
+    /** Whether the error came from HTTP status classification or envelope classification. */
     readonly source: ErrorSource,
+    /** Coarse lifecycle outcome for error hooks. */
     readonly kind: Exclude<ResultKind, "ok"> = "error",
   ) {
     super(msg);

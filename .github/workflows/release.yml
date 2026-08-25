@@ -3,8 +3,16 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      package:
+        description: "Package to publish"
+        required: true
+        default: http
+        type: choice
+        options:
+          - http
+          - plugins
       version:
-        description: "Exact @envoijs/http semver, for example 0.1.0 or 1.0.0-rc.1"
+        description: "Exact package semver, for example 0.1.0 or 1.0.0-rc.1"
         required: true
         type: string
       npm_tag:
@@ -18,7 +26,7 @@ on:
           - beta
 
 concurrency:
-  group: release-${{ inputs.version }}
+  group: release-${{ inputs.package }}-${{ inputs.version }}
   cancel-in-progress: false
 
 # npm Trusted Publishing must match:
@@ -33,6 +41,10 @@ jobs:
     permissions:
       contents: write
       id-token: write
+    env:
+      RELEASE_PACKAGE: ${{ inputs.package }}
+      PACKAGE_NAME: "@envoijs/${{ inputs.package }}"
+      PACKAGE_DIR: "packages/${{ inputs.package }}"
     steps:
       - uses: actions/checkout@v5
         with:
@@ -65,12 +77,17 @@ jobs:
               process.exit(1)
             }
           '
+          if [ "$RELEASE_PACKAGE" = "http" ]; then
+            echo "PACKAGE_TAG=v$RELEASE_VERSION" >> "$GITHUB_ENV"
+          else
+            echo "PACKAGE_TAG=$RELEASE_PACKAGE-v$RELEASE_VERSION" >> "$GITHUB_ENV"
+          fi
 
       - name: Set package version with pnpm
         env:
           RELEASE_VERSION: ${{ inputs.version }}
         run: |
-          pnpm release:version "$RELEASE_VERSION"
+          pnpm --dir "$PACKAGE_DIR" version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
           pnpm install --lockfile-only
 
       - run: pnpm verify
@@ -80,7 +97,7 @@ jobs:
         env:
           RELEASE_VERSION: ${{ inputs.version }}
         run: |
-          if npm view "@envoijs/http@$RELEASE_VERSION" version >/dev/null 2>&1; then
+          if npm view "$PACKAGE_NAME@$RELEASE_VERSION" version >/dev/null 2>&1; then
             echo "published=true" >> "$GITHUB_OUTPUT"
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
@@ -91,7 +108,7 @@ jobs:
         run: |
           rm -rf release
           mkdir release
-          pnpm release:pack
+          pnpm --dir "$PACKAGE_DIR" pack --pack-destination ../../release
 
       # pnpm 11 publish is native and does not perform npm's OIDC exchange.
       # npm CLI uploads the pnpm-generated tarball using Trusted Publishing.
@@ -107,13 +124,13 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
         run: |
           for attempt in {1..12}; do
-            published="$(npm view "@envoijs/http@$RELEASE_VERSION" version 2>/dev/null || true)"
+            published="$(npm view "$PACKAGE_NAME@$RELEASE_VERSION" version 2>/dev/null || true)"
             if [ "$published" = "$RELEASE_VERSION" ]; then
               exit 0
             fi
             sleep 5
           done
-          echo "npm did not expose @envoijs/http@$RELEASE_VERSION after publish" >&2
+          echo "npm did not expose $PACKAGE_NAME@$RELEASE_VERSION after publish" >&2
           exit 1
 
       - name: Commit version and push tag
@@ -122,14 +139,14 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add packages/http/package.json pnpm-lock.yaml
+          git add "$PACKAGE_DIR/package.json" pnpm-lock.yaml
           if ! git diff --cached --quiet; then
-            git commit -m "chore(release): v$RELEASE_VERSION"
+            git commit -m "chore(release): $PACKAGE_NAME@$RELEASE_VERSION"
             git push origin HEAD:main
           fi
-          if ! git ls-remote --exit-code --tags origin "refs/tags/v$RELEASE_VERSION" >/dev/null 2>&1; then
-            git tag "v$RELEASE_VERSION"
-            git push origin "v$RELEASE_VERSION"
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$PACKAGE_TAG" >/dev/null 2>&1; then
+            git tag "$PACKAGE_TAG"
+            git push origin "$PACKAGE_TAG"
           fi
 
       - name: Create GitHub release
@@ -137,5 +154,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ inputs.version }}
         run: |
-          gh release view "v$RELEASE_VERSION" >/dev/null 2>&1 || \
-            gh release create "v$RELEASE_VERSION" --title "v$RELEASE_VERSION" --generate-notes
+          gh release view "$PACKAGE_TAG" >/dev/null 2>&1 || \
+            gh release create "$PACKAGE_TAG" --title "$PACKAGE_NAME@$RELEASE_VERSION" --generate-notes

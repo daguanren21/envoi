@@ -24,6 +24,12 @@
 pnpm add @envoijs/http
 ```
 
+如需防抖、节流、重试、缓存等 Axios instance 插件，可按需安装同仓子包：
+
+```bash
+pnpm add @envoijs/plugins
+```
+
 ## 研发背景
 
 很多前端项目都有一份 `request.ts`。最初只加 token，后来陆续塞入语言、时区、登录跳转、文件下载、业务状态码、错误提示和各系统自己的 response 解构。项目一多，这些文件看起来相似，实际行为和 axios 版本已经分叉。
@@ -293,20 +299,21 @@ createHttp({
 });
 ```
 
-现有 axios instance 会保留 interceptors 和 plugin wrapper。从创建它的模块或现有框架注册处传入，不再新建：
+现有 Axios instance 会保留 interceptors 和 plugins。把 `@envoijs/plugins` 安装到传给 envoi 的同一个 instance：
 
 ```ts
-import type { AxiosInstance } from "@envoijs/http";
+import { axiosAdapter, createHttp, type AxiosInstance } from "@envoijs/http";
+import { installPlugins, merge } from "@envoijs/plugins";
 
 export function attachEnvoi(instance: AxiosInstance) {
-  useAxiosPlugin(instance).plugin(merge());
+  installPlugins(instance, [merge()]);
   return createHttp({
     adapter: axiosAdapter(instance),
   });
 }
 ```
 
-注册顺序、retry、transform 和 response contract 的边界见 [axios plugin 接入说明](https://daguanren21.github.io/envoi/zh/guide/adapters#接入现有-axios-instance-与-axios-plugins)。
+插件目录、注册顺序、单请求配置和 adapter 边界见独立的 [Axios Plugins 指南](https://daguanren21.github.io/envoi/zh/guide/plugins)。
 
 `vue-axios`、Mokup 和 `axios-mock-adapter` 也接到这个 instance。旧 `$http`、mock server 路由和单测内存 mock 的完整接法见 [Vue 与 Mock 接入](https://daguanren21.github.io/envoi/zh/guide/integrations)。
 

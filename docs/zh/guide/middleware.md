@@ -1,6 +1,6 @@
 # 可复用 Middleware
 
-envoi 的 middleware 是一组可复用的生命周期 hooks，不使用 Koa 风格的 `next()`。
+envoi middleware 将一个或多个生命周期 hooks 组织成可复用的请求策略单元；每个生命周期阶段按声明顺序串行执行对应 hooks。
 
 ```ts
 interface HttpHooks {

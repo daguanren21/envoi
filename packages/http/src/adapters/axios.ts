@@ -7,12 +7,19 @@ import {
 } from "axios";
 import type { Adapter, HttpRequest, HttpResponse } from "../types";
 
+/**
+ * Native Axios defaults accepted by `axiosAdapter`.
+ *
+ * URL, headers, query, timeout, and status validation remain owned by `createHttp`.
+ */
 export type AxiosAdapterOptions = Omit<
   CreateAxiosDefaults,
   "baseURL" | "headers" | "timeout" | "params" | "paramsSerializer" | "validateStatus"
 >;
 
+/** Options accepted when creating the shared Axios instance. */
 export type AxiosInstanceOptions = CreateAxiosDefaults;
+/** Axios instance type re-exported so applications do not need a direct Axios import. */
 export type { AxiosInstance } from "axios";
 
 /** Create the shared axios instance without importing axios in application code. */

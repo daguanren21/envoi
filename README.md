@@ -24,6 +24,12 @@ A typed HTTP client that turns transport responses and backend envelopes into a 
 pnpm add @envoijs/http
 ```
 
+For debounce, throttling, retries, caching, and other Axios instance plugins, install the optional sibling package:
+
+```bash
+pnpm add @envoijs/plugins
+```
+
 ## Why envoi exists
 
 Frontend projects often grow their own `request.ts` around axios. The file starts with a token header and gradually absorbs language headers, time zones, login redirects, downloads, business status codes, toasts, and project-specific response extraction. Every application then maintains a different copy.
@@ -293,20 +299,21 @@ createHttp({
 });
 ```
 
-Existing axios instances keep their interceptors and wrappers. Pass the object from the module or framework registration that already owns it:
+Existing Axios instances keep their interceptors and plugins. Install `@envoijs/plugins` on the exact instance passed to envoi:
 
 ```ts
-import type { AxiosInstance } from "@envoijs/http";
+import { axiosAdapter, createHttp, type AxiosInstance } from "@envoijs/http";
+import { installPlugins, merge } from "@envoijs/plugins";
 
 export function attachEnvoi(instance: AxiosInstance) {
-  useAxiosPlugin(instance).plugin(merge());
+  installPlugins(instance, [merge()]);
   return createHttp({
     adapter: axiosAdapter(instance),
   });
 }
 ```
 
-See [axios plugin integration](https://daguanren21.github.io/envoi/guide/adapters#existing-axios-instances-and-axios-plugins) for ordering, retry, transform, and response-contract boundaries.
+See the dedicated [Axios plugins guide](https://daguanren21.github.io/envoi/guide/plugins) for the catalog, registration order, per-request options, and adapter boundaries.
 
 `vue-axios`, Mokup, and `axios-mock-adapter` also attach to that same instance. See [Vue and mock integrations](https://daguanren21.github.io/envoi/guide/integrations) for legacy `$http`, mock-server routing, and in-process test mocks.
 

@@ -1,6 +1,7 @@
 import { headersFromFetch } from "../headers";
 import type { Adapter, HttpRequest, HttpResponse } from "../types";
 
+/** Native Fetch customization that remains outside envoi's normalized request fields. */
 export interface FetchAdapterOptions {
   /** Custom fetch implementation (test mock, runtime bridge, polyfill). */
   fetch?: typeof globalThis.fetch;

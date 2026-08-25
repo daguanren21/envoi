@@ -51,6 +51,26 @@ export function getUser(id: number): Promise<User> {
 }
 ```
 
+### Hover API descriptions
+
+Twoslash-enabled examples expose the real package types. Hover `get` below to see its signature and method description:
+
+```ts twoslash
+import { createHttp } from "@envoijs/http";
+
+interface User {
+  id: number;
+  name: string;
+}
+
+const typedHttp = createHttp({
+  adapter: "fetch",
+  envelope: {},
+});
+
+const userPromise = typedHttp.get<User>("/users/1");
+```
+
 Given this backend response:
 
 ```json

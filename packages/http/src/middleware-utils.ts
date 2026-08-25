@@ -7,8 +7,8 @@ function asArray<C>(value: Hook<C> | Hook<C>[] | undefined): Hook<C>[] {
 }
 
 /**
- * Define a reusable middleware bundle with complete hook context types.
- * Middleware in envoi is a named group of lifecycle hooks; it has no `next()`.
+ * Define a reusable request-policy bundle with complete lifecycle hook context types.
+ * Use `mergeMiddleware` to compose bundles while preserving declaration order in every phase.
  */
 export function createMiddleware(hooks: HttpHooks): HttpHooks {
   return hooks;

@@ -1,6 +1,6 @@
 # Reusable middleware
 
-Middleware in envoi is a reusable bundle of lifecycle hooks. It does not use a Koa-style `next()` function.
+Middleware in envoi packages one or more lifecycle hooks into a reusable request-policy unit. Each lifecycle phase runs its hooks sequentially in declaration order.
 
 ```ts
 interface HttpHooks {

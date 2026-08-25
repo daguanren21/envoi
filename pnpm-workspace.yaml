@@ -10,6 +10,13 @@ catalog:
   axios: 1.19.0
   axios-mock-adapter: 2.1.0
   ufo: 1.6.4
+  crypto-js: 4.2.0
+  klona: 2.0.6
+  qs: 6.15.2
+  jsencrypt: 3.5.4
+  nock: 13.5.4
+  "@types/crypto-js": 4.2.2
+  "@types/qs": 6.9.15
 
 allowBuilds:
   esbuild: true

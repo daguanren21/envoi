@@ -7,6 +7,8 @@ import {
   type EnvelopeOption,
   type HttpResponse,
 } from "../../../../packages/http/src/index";
+import ProtocolDataPanel from "./ProtocolDataPanel.vue";
+import ProtocolScenarioPicker from "./ProtocolScenarioPicker.vue";
 
 interface Props {
   lang?: "en" | "zh";
@@ -19,9 +21,15 @@ interface DemoUser {
 
 type ScenarioKey = "success" | "business-error" | "http-only" | "renamed" | "http-error";
 
+interface LocalizedCopy {
+  en: string;
+  zh: string;
+}
+
 interface Scenario {
   key: ScenarioKey;
-  label: { en: string; zh: string };
+  label: LocalizedCopy;
+  summary: LocalizedCopy;
   status: number;
   statusText: string;
   body: unknown;
@@ -45,38 +53,44 @@ const text = computed(() =>
   props.lang === "zh"
     ? {
         eyebrow: "协议实验台",
-        title: "一眼看清 response 如何变成 T",
+        titleLead: "后端响应如何转换为",
+        titleTail: "业务数据或 BizError",
         description:
-          "下面运行的是仓库里的真实 createHttp。选择后端返回，再执行请求并观察 resolve 或 BizError。",
+          "选择一种后端响应，运行仓库里的真实 createHttp，对比原始 response 与 Promise resolve/reject 的最终结果。",
         response: "后端 response",
         result: "envoi 输出",
+        scenario: "场景",
+        pipeline: "真实请求管线",
         run: "运行请求",
         rerun: "再次运行",
         booting: "正在启动",
         running: "处理中",
         ready: "等待运行",
-        idle: "// 选择一个场景，然后点击“运行请求”",
-        inFlight: "// 正在执行 createHttp...",
-        completed: "已完成请求",
+        idle: "// 运行后在这里查看 resolve 值或 BizError",
+        inFlight: "// createHttp 正在处理 response...",
+        completed: "已完成",
         value: "Promise resolve",
         error: "Promise reject",
         real: "真实 envoi client",
       }
     : {
         eyebrow: "Protocol workbench",
-        title: "See exactly how a response becomes T",
+        titleLead: "From backend response to",
+        titleTail: "data or BizError",
         description:
-          "This demo runs the repository's real createHttp. Choose a backend response, run it, and inspect the resolved value or BizError.",
+          "Choose a backend response, run the repository's real createHttp, and compare the raw response with the final resolved value or rejected BizError.",
         response: "Backend response",
         result: "envoi outcome",
+        scenario: "Scenario",
+        pipeline: "Real request pipeline",
         run: "Run request",
         rerun: "Run again",
         booting: "Starting client",
         running: "Running",
         ready: "Ready to run",
-        idle: "// Choose a scenario, then click Run request",
-        inFlight: "// Executing createHttp...",
-        completed: "Completed run",
+        idle: "// Run the scenario to inspect its resolved value or BizError",
+        inFlight: "// createHttp is processing the response...",
+        completed: "Completed",
         value: "Promise resolved",
         error: "Promise rejected",
         real: "real envoi client",
@@ -87,6 +101,7 @@ const scenarios: Scenario[] = [
   {
     key: "success",
     label: { en: "Envelope success", zh: "Envelope 成功" },
+    summary: { en: "Unwrap data", zh: "解包 data" },
     status: 200,
     statusText: "OK",
     body: { code: 200, msg: "ok", data: { id: 42, name: "Ada" } },
@@ -95,6 +110,7 @@ const scenarios: Scenario[] = [
   {
     key: "business-error",
     label: { en: "Business error", zh: "业务错误" },
+    summary: { en: "Reject BizError", zh: "reject BizError" },
     status: 200,
     statusText: "OK",
     body: { code: 42_201, msg: "Plan limit reached", data: null },
@@ -103,6 +119,7 @@ const scenarios: Scenario[] = [
   {
     key: "http-only",
     label: { en: "HTTP-only body", zh: "HTTP-only" },
+    summary: { en: "Return body", zh: "直接返回 body" },
     status: 200,
     statusText: "OK",
     body: { id: 42, name: "Ada" },
@@ -110,6 +127,7 @@ const scenarios: Scenario[] = [
   {
     key: "renamed",
     label: { en: "Renamed fields", zh: "字段改名" },
+    summary: { en: "Map custom keys", zh: "映射自定义字段" },
     status: 200,
     statusText: "OK",
     body: { errno: 0, errmsg: "ok", result: { id: 42, name: "Ada" } },
@@ -123,6 +141,7 @@ const scenarios: Scenario[] = [
   {
     key: "http-error",
     label: { en: "HTTP 503", zh: "HTTP 503" },
+    summary: { en: "Reject by status", zh: "按 status reject" },
     status: 503,
     statusText: "Service Unavailable",
     body: { code: 200, msg: "stale success code", data: { id: 42, name: "Ada" } },
@@ -177,7 +196,6 @@ async function runScenario(): Promise<void> {
   const adapter: Adapter = {
     name: "protocol-lab",
     async request(): Promise<HttpResponse> {
-      // Keep the real client transition visible instead of resolving in the same frame.
       await new Promise<void>((resolve) => setTimeout(resolve, 420));
       return {
         status: scenario.status,
@@ -221,9 +239,11 @@ async function runScenario(): Promise<void> {
   }
 }
 
-function selectScenario(key: ScenarioKey): void {
+function selectScenario(key: string): void {
   if (running.value) return;
-  selectedKey.value = key;
+  const scenario = scenarios.find((item) => item.key === key);
+  if (!scenario) return;
+  selectedKey.value = scenario.key;
   outcome.value = undefined;
 }
 
@@ -235,61 +255,81 @@ onMounted(() => {
 <template>
   <section class="protocol-lab" aria-labelledby="protocol-lab-title">
     <header class="protocol-lab__header">
-      <div>
+      <div class="protocol-lab__intro">
         <span class="protocol-lab__eyebrow">{{ text.eyebrow }}</span>
-        <h2 id="protocol-lab-title">{{ text.title }}</h2>
+        <h2 id="protocol-lab-title">
+          <span>{{ text.titleLead }}</span>
+          <span>{{ text.titleTail }}</span>
+        </h2>
         <p>{{ text.description }}</p>
       </div>
-      <span class="protocol-lab__status"><i />{{ text.real }}</span>
+      <div class="protocol-lab__trust" role="status">
+        <span><i />{{ text.real }}</span>
+        <code>createHttp()</code>
+      </div>
     </header>
 
-    <div class="protocol-lab__scenarios" role="group" :aria-label="text.eyebrow">
-      <button
-        v-for="scenario in scenarios"
-        :key="scenario.key"
-        type="button"
-        :aria-pressed="selectedKey === scenario.key"
+    <div class="protocol-lab__selector">
+      <div class="protocol-lab__selector-head">
+        <span>{{ text.scenario }}</span>
+        <strong>{{ selected.label[props.lang] }}</strong>
+        <small>{{ selected.summary[props.lang] }}</small>
+      </div>
+      <ProtocolScenarioPicker
+        :items="scenarios"
+        :selected-key="selectedKey"
+        :lang="props.lang"
         :disabled="!hydrated || running"
-        @click="selectScenario(scenario.key)"
-      >
-        {{ scenario.label[props.lang] }}
-      </button>
+        :label="text.scenario"
+        @select="selectScenario"
+      />
     </div>
 
-    <div class="protocol-lab__panels">
-      <article class="protocol-lab__panel protocol-lab__panel--response">
-        <div class="protocol-lab__panel-head">
-          <span>{{ text.response }}</span>
-          <code>HTTP {{ selected.status }}</code>
+    <div class="protocol-lab__workspace" :class="{ 'is-running': running }">
+      <div class="protocol-lab__toolbar">
+        <div class="protocol-lab__pipeline">
+          <i />
+          <span>
+            <small>{{ text.pipeline }}</small>
+            <strong>HTTP {{ selected.status }} · {{ selected.statusText }}</strong>
+          </span>
         </div>
-        <pre><code>{{ responseText }}</code></pre>
-      </article>
+        <button
+          class="protocol-lab__run"
+          type="button"
+          :disabled="!hydrated || running"
+          @click="runScenario"
+        >
+          <i aria-hidden="true" />
+          {{ runLabel }}
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
 
-      <article
-        class="protocol-lab__panel protocol-lab__panel--outcome"
-        :class="`is-${outcomeState}`"
-        :aria-busy="running"
-        aria-live="polite"
-      >
-        <div class="protocol-lab__panel-head">
-          <span>{{ text.result }}</span>
-          <code :class="`is-${outcomeState}`">{{ outcomeStatus }}</code>
-        </div>
-        <strong>{{ outcomeType }}</strong>
-        <pre><code>{{ outcomeText }}</code></pre>
-      </article>
-    </div>
+      <div class="protocol-lab__panels">
+        <ProtocolDataPanel
+          :heading="text.response"
+          :badge="`HTTP ${selected.status}`"
+          :label="selected.statusText"
+          :content="responseText"
+          tone="response"
+        />
+        <span class="protocol-lab__flow" aria-hidden="true">→</span>
+        <ProtocolDataPanel
+          :heading="text.result"
+          :badge="outcomeStatus"
+          :label="outcomeType"
+          :content="outcomeText"
+          :tone="outcomeState"
+          :busy="running"
+        />
+      </div>
 
-    <div class="protocol-lab__actions">
-      <button
-        class="protocol-lab__run"
-        type="button"
-        :disabled="!hydrated || running"
-        @click="runScenario"
-      >
-        {{ runLabel }}
-      </button>
-      <span v-if="outcome" aria-live="polite">{{ text.completed }} #{{ completedRuns }}</span>
+      <footer class="protocol-lab__footer" aria-live="polite">
+        <span>{{ selected.summary[props.lang] }}</span>
+        <span v-if="outcome">{{ text.completed }} #{{ completedRuns }}</span>
+        <span v-else>{{ text.ready }}</span>
+      </footer>
     </div>
   </section>
 </template>
@@ -298,289 +338,337 @@ onMounted(() => {
 .protocol-lab {
   position: relative;
   max-width: 1080px;
-  margin: 72px auto;
-  overflow: hidden;
-  padding: clamp(22px, 4vw, 40px);
+  margin: 64px auto;
+  padding: clamp(22px, 3.5vw, 34px);
   border: 1px solid var(--envoi-lab-border);
-  border-radius: 28px;
+  border-radius: 26px;
+  color: var(--envoi-lab-title);
   background: var(--envoi-lab-bg);
   box-shadow: var(--envoi-lab-shadow);
 }
 
-.protocol-lab::before {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent 49.8%, var(--envoi-lab-grid) 50%, transparent 50.2%) 0 0 /
-      48px 48px,
-    linear-gradient(transparent 49.8%, var(--envoi-lab-grid) 50%, transparent 50.2%) 0 0 / 48px 48px;
-  content: "";
-  opacity: 0.45;
-}
-
-.protocol-lab > * {
-  position: relative;
-}
-
 .protocol-lab__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 28px;
+}
+
+.protocol-lab__intro {
+  min-width: 0;
 }
 
 .protocol-lab__eyebrow {
   color: var(--envoi-coral);
   font-family: var(--vp-font-family-mono);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.11em;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.protocol-lab__header h2 {
-  max-width: 700px;
-  margin: 8px 0 10px;
+.protocol-lab__intro h2 {
+  max-width: 720px;
+  margin: 8px 0 12px;
   border: 0;
   color: var(--envoi-lab-title);
-  font-size: clamp(26px, 4vw, 42px);
-  letter-spacing: -0.04em;
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
 }
 
-.protocol-lab__header p {
+.protocol-lab__intro h2 span {
+  display: block;
+}
+
+.protocol-lab__intro p {
   max-width: 720px;
   margin: 0;
   color: var(--envoi-lab-muted);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.7;
 }
 
-.protocol-lab__status {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 11px;
+.protocol-lab__trust {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 7px;
+  padding: 10px 12px;
   border: 1px solid var(--envoi-lab-border);
-  border-radius: 999px;
-  color: var(--envoi-lab-muted);
+  border-radius: 12px;
   background: var(--envoi-lab-chip);
   font-family: var(--vp-font-family-mono);
-  font-size: 11px;
+  font-size: 10px;
 }
 
-.protocol-lab__status i {
+.protocol-lab__trust span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--envoi-lab-title);
+  font-weight: 650;
+}
+
+.protocol-lab__trust i,
+.protocol-lab__pipeline > i {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--envoi-teal);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--envoi-teal), transparent 78%);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--envoi-teal), transparent 80%);
 }
 
-.protocol-lab__scenarios {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 28px 0 16px;
-}
-
-.protocol-lab__scenarios button {
-  min-height: 42px;
-  padding: 9px 13px;
-  border: 1px solid var(--envoi-lab-border);
-  border-radius: 10px;
+.protocol-lab__trust code {
   color: var(--envoi-lab-muted);
-  background: var(--envoi-lab-chip);
-  font-size: 13px;
-  font-weight: 650;
-  cursor: pointer;
-  transition:
-    border-color 150ms ease,
-    color 150ms ease,
-    background-color 150ms ease;
+  font-size: 9px;
 }
 
-.protocol-lab__scenarios button:hover,
-.protocol-lab__scenarios button[aria-pressed="true"] {
-  border-color: var(--envoi-coral);
-  color: var(--envoi-lab-title);
-  background: color-mix(in srgb, var(--envoi-coral), transparent 88%);
+.protocol-lab__selector {
+  margin-top: 28px;
 }
 
-.protocol-lab__scenarios button:disabled {
-  cursor: wait;
-  opacity: 0.62;
-}
-
-.protocol-lab__panels {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  gap: 14px;
-}
-
-.protocol-lab__panel {
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid var(--envoi-lab-border);
-  border-radius: 16px;
-  background: var(--envoi-lab-panel);
-}
-
-.protocol-lab__panel-head {
+.protocol-lab__selector-head {
   display: flex;
-  min-height: 46px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 16px;
-  border-bottom: 1px solid var(--envoi-lab-border);
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.protocol-lab__selector-head > span {
   color: var(--envoi-lab-muted);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.protocol-lab__panel-head code {
-  color: var(--envoi-amber);
+.protocol-lab__selector-head strong {
+  color: var(--envoi-lab-title);
+  font-size: 13px;
+}
+
+.protocol-lab__selector-head small {
+  color: var(--envoi-lab-muted);
   font-size: 11px;
 }
 
-.protocol-lab__panel-head code.is-error {
-  color: var(--envoi-coral);
+.protocol-lab__workspace {
+  margin-top: 16px;
+  overflow: hidden;
+  border: 1px solid var(--envoi-lab-border);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--envoi-lab-panel), transparent 20%);
 }
 
-.protocol-lab__panel-head code.is-value {
-  color: var(--envoi-teal);
+.protocol-lab__toolbar {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 11px 14px 11px 18px;
+  border-bottom: 1px solid var(--envoi-lab-border);
+  background: var(--envoi-lab-chip);
 }
 
-.protocol-lab__panel-head code.is-idle {
+.protocol-lab__pipeline {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.protocol-lab__pipeline span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.protocol-lab__pipeline small {
   color: var(--envoi-lab-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-.protocol-lab__panel-head code.is-running {
-  color: var(--envoi-amber);
-}
-
-.protocol-lab__panel--outcome.is-running {
-  border-color: color-mix(in srgb, var(--envoi-amber), transparent 42%);
-}
-
-.protocol-lab__panel pre {
-  min-height: 238px;
-  max-height: 360px;
-  margin: 0;
-  overflow: auto;
-  padding: 18px;
-  color: var(--envoi-lab-code);
-  background: transparent;
-  font-size: 13px;
-  line-height: 1.65;
-  white-space: pre-wrap;
-}
-
-.protocol-lab__panel--outcome strong {
-  display: block;
-  padding: 20px 18px 0;
+.protocol-lab__pipeline strong {
+  overflow: hidden;
   color: var(--envoi-lab-title);
   font-family: var(--vp-font-family-mono);
-  font-size: 20px;
-}
-
-.protocol-lab__panel--outcome pre {
-  min-height: 194px;
-  padding-top: 12px;
-}
-
-.protocol-lab__actions {
-  display: flex;
-  min-height: 46px;
-  align-items: center;
-  gap: 14px;
-  margin-top: 16px;
-}
-
-.protocol-lab__actions > span {
-  color: var(--envoi-lab-muted);
-  font-family: var(--vp-font-family-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .protocol-lab__run {
-  min-height: 46px;
+  display: inline-flex;
+  min-height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
   margin: 0;
-  padding: 0 20px;
-  border: 0;
+  padding: 0 16px;
+  border: 1px solid color-mix(in srgb, var(--vp-c-brand-1), black 8%);
   border-radius: 11px;
   color: #fff;
   background: var(--vp-c-brand-1);
-  box-shadow: 0 10px 26px var(--vp-c-brand-soft);
+  box-shadow: 0 9px 22px var(--vp-c-brand-soft);
+  font-size: 12px;
   font-weight: 750;
   cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
-.protocol-lab__run:not(:disabled):hover {
-  filter: brightness(1.06);
+.protocol-lab__run > i {
+  display: none;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
 }
 
-.protocol-lab__run:not(:disabled):active {
-  transform: translateY(1px);
+.protocol-lab__workspace.is-running .protocol-lab__run > i {
+  display: block;
+  animation: protocol-spin 700ms linear infinite;
+}
+
+.protocol-lab__run:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px var(--vp-c-brand-soft);
+}
+
+.protocol-lab__run:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.protocol-lab__run:focus-visible {
+  outline: 3px solid var(--vp-c-brand-soft);
+  outline-offset: 3px;
 }
 
 .protocol-lab__run:disabled {
   cursor: wait;
-  opacity: 0.65;
+  opacity: 0.68;
+}
+
+.protocol-lab__panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 32px minmax(0, 1fr);
+  align-items: stretch;
+  padding: 14px;
+}
+
+.protocol-lab__flow {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-self: center;
+  place-items: center;
+  border: 1px solid var(--envoi-lab-border);
+  border-radius: 50%;
+  color: var(--envoi-lab-muted);
+  background: var(--envoi-lab-chip);
+  font-family: var(--vp-font-family-mono);
+  font-size: 11px;
+}
+
+.protocol-lab__footer {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 18px;
+  border-top: 1px solid var(--envoi-lab-border);
+  color: var(--envoi-lab-muted);
+  font-family: var(--vp-font-family-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+@keyframes protocol-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 760px) {
   .protocol-lab {
-    margin: 44px 0;
+    margin: 40px 0;
+    padding: 20px 18px;
     border-radius: 20px;
   }
 
   .protocol-lab__header {
-    flex-direction: column;
-  }
-
-  .protocol-lab__scenarios {
-    flex-wrap: nowrap;
-    margin-right: -22px;
-    margin-left: -22px;
-    overflow-x: auto;
-    padding: 0 22px 8px;
-    scrollbar-width: none;
-  }
-
-  .protocol-lab__scenarios::-webkit-scrollbar {
-    display: none;
-  }
-
-  .protocol-lab__scenarios button {
-    flex: none;
-  }
-
-  .protocol-lab__panels {
     grid-template-columns: 1fr;
+    gap: 18px;
   }
 
-  .protocol-lab__panel pre {
-    min-height: 190px;
-    font-size: 12px;
+  .protocol-lab__intro h2 {
+    font-size: clamp(28px, 8vw, 34px);
   }
 
-  .protocol-lab__actions {
-    flex-direction: column;
+  .protocol-lab__trust {
+    align-items: flex-start;
+    justify-self: start;
+  }
+
+  .protocol-lab__selector-head {
+    display: grid;
+    grid-template-columns: auto 1fr;
+  }
+
+  .protocol-lab__selector-head small {
+    grid-column: 1 / -1;
+  }
+
+  .protocol-lab__toolbar {
     align-items: stretch;
-  }
-
-  .protocol-lab__actions > span {
-    text-align: center;
+    flex-direction: column;
+    padding: 14px;
   }
 
   .protocol-lab__run {
     width: 100%;
+  }
+
+  .protocol-lab__panels {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .protocol-lab__flow {
+    margin: 8px 0;
+    transform: rotate(90deg);
+  }
+
+  .protocol-lab__footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .protocol-lab__run {
+    transition: none;
+  }
+
+  .protocol-lab__run:hover:not(:disabled) {
+    transform: none;
+  }
+
+  .protocol-lab__workspace.is-running .protocol-lab__run > i {
+    animation: none;
   }
 }
 </style>

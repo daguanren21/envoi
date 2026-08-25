@@ -43,19 +43,20 @@ export const http = createHttp({
 });
 ```
 
-### Existing axios instances and `axios-plugins`
+### `@envoijs/plugins` on existing Axios instances
 
-Pass an existing `AxiosInstance` when a project already installs interceptors or a wrapper such as [`halo951/axios-plugins`](https://github.com/halo951/axios-plugins):
+`@envoijs/plugins` extends the exact Axios instance that envoi dispatches through:
+
+```bash
+pnpm add @envoijs/plugins
+```
 
 ```ts
-import type { AxiosInstance } from "@envoijs/http";
-import { useAxiosPlugin } from "axios-plugins/core";
-import { merge } from "axios-plugins/plugins/merge";
-import { normalize } from "axios-plugins/plugins/normalize";
-import { axiosAdapter, createHttp } from "@envoijs/http";
+import { axiosAdapter, createHttp, type AxiosInstance } from "@envoijs/http";
+import { installPlugins, merge, normalize } from "@envoijs/plugins";
 
 export function installProjectPlugins(instance: AxiosInstance) {
-  useAxiosPlugin(instance).plugin(normalize()).plugin(merge());
+  installPlugins(instance, [normalize(), merge()]);
 
   return createHttp({
     adapter: axiosAdapter(instance),
@@ -63,7 +64,7 @@ export function installProjectPlugins(instance: AxiosInstance) {
 }
 ```
 
-Pass the project-owned instance into this function before the first request. envoi calls `instance.request()`, so its plugin wrapper and interceptors remain active. `useAxiosPlugin(...).wrap()` is unnecessary because envoi never calls the instance as a function.
+Install plugins before the first request. `installPlugins` mutates the project-owned instance in place, and envoi calls `instance.request()`, so the installed plugin lifecycle remains active.
 
 Per-request axios plugin fields go through the namespaced metadata escape hatch:
 

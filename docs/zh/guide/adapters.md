@@ -43,19 +43,20 @@ export const http = createHttp({
 });
 ```
 
-### 接入现有 axios instance 与 `axios-plugins`
+### 在现有 Axios instance 上使用 `@envoijs/plugins`
 
-项目已经安装 interceptors 或 [`halo951/axios-plugins`](https://github.com/halo951/axios-plugins) 时，把同一个 `AxiosInstance` 交给 adapter：
+`@envoijs/plugins` 会扩展 envoi 实际发送请求时使用的同一个 Axios instance：
+
+```bash
+pnpm add @envoijs/plugins
+```
 
 ```ts
-import type { AxiosInstance } from "@envoijs/http";
-import { useAxiosPlugin } from "axios-plugins/core";
-import { merge } from "axios-plugins/plugins/merge";
-import { normalize } from "axios-plugins/plugins/normalize";
-import { axiosAdapter, createHttp } from "@envoijs/http";
+import { axiosAdapter, createHttp, type AxiosInstance } from "@envoijs/http";
+import { installPlugins, merge, normalize } from "@envoijs/plugins";
 
 export function installProjectPlugins(instance: AxiosInstance) {
-  useAxiosPlugin(instance).plugin(normalize()).plugin(merge());
+  installPlugins(instance, [normalize(), merge()]);
 
   return createHttp({
     adapter: axiosAdapter(instance),
@@ -63,7 +64,7 @@ export function installProjectPlugins(instance: AxiosInstance) {
 }
 ```
 
-第一次请求发出前，把项目原有 instance 传给这个函数。envoi 调用 `instance.request()`，plugin wrapper 和 interceptors 都会执行。envoi 不会把 instance 当函数调用，因此不需要 `useAxiosPlugin(...).wrap()`。
+请在第一次请求前安装插件。`installPlugins` 会原地修改项目持有的 instance；envoi 调用 `instance.request()`，所以已安装的插件生命周期会正常执行。
 
 单请求 plugin 参数放进带命名空间的 metadata：
 

@@ -1,8 +1,12 @@
 import type { Adapter, HttpRequest, HttpResponse } from "../types";
 
+/** Retry controls forwarded to the optional `ofetch` peer adapter. */
 export interface OfetchAdapterOptions {
+  /** Maximum retries, or `false` to disable ofetch retry behavior. */
   retry?: number | false;
+  /** Delay between attempts in milliseconds. */
   retryDelay?: number;
+  /** HTTP status codes that trigger an ofetch retry. */
   retryStatusCodes?: number[];
 }
 

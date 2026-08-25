@@ -1,0 +1,73 @@
+{
+  "name": "@envoijs/plugins",
+  "version": "0.1.0",
+  "description": "Composable Axios plugins for debounce, throttling, retries, caching, transforms, and more.",
+  "keywords": [
+    "axios",
+    "cache",
+    "debounce",
+    "plugins",
+    "retry",
+    "throttle"
+  ],
+  "homepage": "https://github.com/daguanren21/envoi#readme",
+  "bugs": {
+    "url": "https://github.com/daguanren21/envoi/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daguanren21/envoi.git",
+    "directory": "packages/plugins"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "README.en-US.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --config ../../vitest.config.ts --dir ../.."
+  },
+  "dependencies": {
+    "crypto-js": "catalog:",
+    "klona": "catalog:",
+    "qs": "catalog:"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "catalog:",
+    "@types/qs": "catalog:",
+    "axios": "catalog:",
+    "jsencrypt": "catalog:",
+    "nock": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "axios": ">=1.7.2 <2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

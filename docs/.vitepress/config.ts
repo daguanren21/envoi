@@ -1,4 +1,22 @@
+import { createFileSystemTypesCache } from "@shikijs/vitepress-twoslash/cache-fs";
+import { transformerTwoslash } from "@shikijs/vitepress-twoslash";
 import { defineConfig, type DefaultTheme } from "vitepress";
+
+const twoslashTransformer = transformerTwoslash({
+  explicitTrigger: true,
+  typesCache: createFileSystemTypesCache({ dir: "docs/.vitepress/cache/twoslash" }),
+  twoslashOptions: {
+    vfsRoot: process.cwd(),
+    compilerOptions: {
+      baseUrl: process.cwd(),
+      paths: {
+        "@envoijs/http": ["packages/http/src/index.ts"],
+        "@envoijs/plugins": ["packages/plugins/src/index.ts"],
+      },
+      strict: true,
+    },
+  },
+});
 
 const logo: DefaultTheme.ThemeableImage = {
   light: "/brand/mark-light.svg",
@@ -48,6 +66,16 @@ const enTheme: DefaultTheme.Config = {
         { text: "Hooks", link: "/guide/hooks" },
         { text: "Middleware", link: "/guide/middleware" },
         { text: "Adapters", link: "/guide/adapters" },
+      ],
+    },
+    {
+      text: "Axios plugins",
+      items: [
+        { text: "Overview and catalog", link: "/guide/plugins" },
+        {
+          text: "Adapter boundaries",
+          link: "/guide/adapters#compatibility-boundaries",
+        },
       ],
     },
     {
@@ -111,6 +139,13 @@ const zhTheme: DefaultTheme.Config = {
       ],
     },
     {
+      text: "Axios Plugins",
+      items: [
+        { text: "插件总览", link: "/zh/guide/plugins" },
+        { text: "Adapter 兼容边界", link: "/zh/guide/adapters#兼容边界" },
+      ],
+    },
+    {
       text: "使用方示例",
       items: [
         { text: "Query 库", link: "/zh/guide/query-libraries" },
@@ -152,6 +187,8 @@ export default defineConfig({
   appearance: true,
   markdown: {
     lineNumbers: true,
+    codeTransformers: [twoslashTransformer],
+    languages: ["js", "jsx", "ts", "tsx"],
     theme: {
       light: "github-light",
       dark: "github-dark",

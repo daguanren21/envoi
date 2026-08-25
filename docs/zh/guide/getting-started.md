@@ -51,6 +51,26 @@ export function getUser(id: number): Promise<User> {
 }
 ```
 
+### 悬浮查看 API 说明
+
+启用 Twoslash 的示例会读取包内真实类型。把鼠标悬浮在下面的 `get` 上，即可查看方法签名和 description：
+
+```ts twoslash
+import { createHttp } from "@envoijs/http";
+
+interface User {
+  id: number;
+  name: string;
+}
+
+const typedHttp = createHttp({
+  adapter: "fetch",
+  envelope: {},
+});
+
+const userPromise = typedHttp.get<User>("/users/1");
+```
+
 后端返回：
 
 ```json

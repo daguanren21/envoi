@@ -1,3 +1,4 @@
+/** A lifecycle callback that may mutate its request-scoped context. */
 export type Hook<C> = (ctx: C) => void | Promise<void>;
 
 /** Sequential await, return values ignored — same as ofetch `callHooks`. */
