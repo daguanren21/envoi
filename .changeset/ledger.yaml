@@ -1,0 +1,4 @@
+"@envoijs/plugins@0.1.0":
+  dir: packages/plugins
+  intents:
+    - bright-plugins-arrive
