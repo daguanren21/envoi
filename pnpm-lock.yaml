@@ -28,8 +28,8 @@ catalogs:
       specifier: 2.0.6
       version: 2.0.6
     nock:
-      specifier: 13.5.4
-      version: 13.5.4
+      specifier: 13.5.6
+      version: 13.5.6
     qs:
       specifier: 6.15.2
       version: 6.15.2
@@ -150,7 +150,7 @@ importers:
         version: 3.5.4
       nock:
         specifier: 'catalog:'
-        version: 13.5.4(supports-color@7.2.0)
+        version: 13.5.6(supports-color@7.2.0)
       tsdown:
         specifier: 'catalog:'
         version: 0.22.14(@arethetypeswrong/core@0.18.5)(publint@0.3.24)(typescript@5.9.3)(unrun@0.2.39)
@@ -2147,8 +2147,8 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
-  nock@13.5.4:
-    resolution: {integrity: sha512-yAyTfdeNJGGBFxWdzSKCBYxs5FxLbCg5X5Q4ets974hcQzG1+qCxvIyOo4j2Ry6MUlhWVMX4OoYDefAIIwupjw==}
+  nock@13.5.6:
+    resolution: {integrity: sha512-o2zOYiCpzRqSzPj0Zt/dQ/DqZeYoaQ7TUonc/xUPjCGl9WeHpNbxgVvOquXYAaJzI0M9BXV3HTzG0p8IUAbBTQ==}
     engines: {node: '>= 10.13'}
 
   node-emoji@2.2.0:
@@ -4557,7 +4557,7 @@ snapshots:
 
   nanoid@3.3.18: {}
 
-  nock@13.5.4(supports-color@7.2.0):
+  nock@13.5.6(supports-color@7.2.0):
     dependencies:
       debug: 4.4.3(supports-color@7.2.0)
       json-stringify-safe: 5.0.1
