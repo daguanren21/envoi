@@ -21,6 +21,7 @@
     "directory": "packages/plugins"
   },
   "files": [
+    "CHANGELOG.md",
     "dist",
     "LICENSE",
     "README.md",

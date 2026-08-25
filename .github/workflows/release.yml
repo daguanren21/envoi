@@ -60,9 +60,6 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
-      - name: Ensure npm supports Trusted Publishing
-        run: npm install --global npm@11.5.1
-
       - run: pnpm install --frozen-lockfile
 
       - name: Validate exact semver input
@@ -97,26 +94,18 @@ jobs:
         env:
           RELEASE_VERSION: ${{ inputs.version }}
         run: |
-          if npm view "$PACKAGE_NAME@$RELEASE_VERSION" version >/dev/null 2>&1; then
+          if pnpm view "$PACKAGE_NAME@$RELEASE_VERSION" version >/dev/null 2>&1; then
             echo "published=true" >> "$GITHUB_OUTPUT"
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Pack with pnpm
-        if: steps.registry.outputs.published != 'true'
-        run: |
-          rm -rf release
-          mkdir release
-          pnpm --dir "$PACKAGE_DIR" pack --pack-destination ../../release
-
-      # pnpm 11 publish is native and does not perform npm's OIDC exchange.
-      # npm CLI uploads the pnpm-generated tarball using Trusted Publishing.
-      - name: Publish tarball with npm OIDC
+      # pnpm 11 publishes natively and requests npm Trusted Publishing credentials via OIDC.
+      - name: Publish package with pnpm OIDC
         if: steps.registry.outputs.published != 'true'
         env:
           NPM_TAG: ${{ inputs.npm_tag }}
-        run: npm publish ./release/*.tgz --tag "$NPM_TAG" --access public --provenance
+        run: pnpm --dir "$PACKAGE_DIR" publish --tag "$NPM_TAG" --access public --provenance --no-git-checks
 
       - name: Verify npm publication
         if: steps.registry.outputs.published != 'true'
@@ -124,7 +113,7 @@ jobs:
           RELEASE_VERSION: ${{ inputs.version }}
         run: |
           for attempt in {1..12}; do
-            published="$(npm view "$PACKAGE_NAME@$RELEASE_VERSION" version 2>/dev/null || true)"
+            published="$(pnpm view "$PACKAGE_NAME@$RELEASE_VERSION" version 2>/dev/null || true)"
             if [ "$published" = "$RELEASE_VERSION" ]; then
               exit 0
             fi

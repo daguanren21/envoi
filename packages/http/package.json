@@ -21,6 +21,7 @@
     "directory": "packages/http"
   },
   "files": [
+    "CHANGELOG.md",
     "dist",
     "README.md"
   ],

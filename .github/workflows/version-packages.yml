@@ -1,0 +1,67 @@
+name: Version Packages
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: version-packages-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  version:
+    name: Create or update version PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Apply pnpm release plan
+        run: |
+          pnpm version -r --no-git-checks
+          pnpm install --lockfile-only
+
+      - name: Create or update version PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No pending release intents"
+            exit 0
+          fi
+
+          branch="release/version-packages"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add -A
+          git commit -m "chore(release): version packages"
+          git push --force origin "$branch"
+
+          pr_number="$(gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')"
+          if [ -z "$pr_number" ]; then
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "chore(release): version packages" \
+              --body "Apply pending pnpm change intents, update package versions and changelogs, and record the release ledger."
+          else
+            echo "Updated version PR #$pr_number"
+          fi

@@ -3,6 +3,10 @@ packages:
 
 savePrefix: ""
 
+versioning:
+  changelog:
+    storage: repository
+
 catalog:
   typescript: 5.9.3
   tsdown: 0.22.14
@@ -20,7 +24,6 @@ catalog:
 
 allowBuilds:
   esbuild: true
-  vue-demi: set this to true or false
 
 minimumReleaseAgeExclude:
   - "@publint/pack@0.1.7"
