@@ -30,8 +30,8 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
-    "@commitlint/cli": "^19.8.1",
-    "@commitlint/config-conventional": "^19.8.1",
+    "@commitlint/cli": "^21.0.0",
+    "@commitlint/config-conventional": "^21.0.0",
     "@shikijs/vitepress-twoslash": "4.4.3",
     "@types/node": "^24.10.1",
     "husky": "^9.1.7",
