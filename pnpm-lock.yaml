@@ -10,8 +10,8 @@ catalogs:
       specifier: 4.2.2
       version: 4.2.2
     '@types/qs':
-      specifier: 6.9.15
-      version: 6.9.15
+      specifier: 6.15.1
+      version: 6.15.1
     axios:
       specifier: 1.19.0
       version: 1.19.0
@@ -31,8 +31,8 @@ catalogs:
       specifier: 13.5.6
       version: 13.5.6
     qs:
-      specifier: 6.15.2
-      version: 6.15.2
+      specifier: 6.16.0
+      version: 6.16.0
     tsdown:
       specifier: 0.22.14
       version: 0.22.14
@@ -134,14 +134,14 @@ importers:
         version: 2.0.6
       qs:
         specifier: 'catalog:'
-        version: 6.15.2
+        version: 6.16.0
     devDependencies:
       '@types/crypto-js':
         specifier: 'catalog:'
         version: 4.2.2
       '@types/qs':
         specifier: 'catalog:'
-        version: 6.9.15
+        version: 6.15.1
       axios:
         specifier: 'catalog:'
         version: 1.19.0(debug@4.4.3(supports-color@7.2.0))(supports-color@7.2.0)
@@ -1046,8 +1046,8 @@ packages:
   '@types/node@24.13.3':
     resolution: {integrity: sha512-Dh8vAsV36ig5wa9OX4pXvMc9D3Veibfw2wix0CUwYODLD8nkj9UsLjASr49nPg+2eKzxhBV+v7L8pXvT4e639Q==}
 
-  '@types/qs@6.9.15':
-    resolution: {integrity: sha512-uXHQKES6DQKKCLh441Xv/dwxOq1TVS3JPUMlEqoEglvlhR6Mxnlew/Xq/LRVHpLyk7iK3zODe1qYHIMltO7XGg==}
+  '@types/qs@6.15.1':
+    resolution: {integrity: sha512-GZHUBZR9hckSUhrxmp1nG6NwdpM9fCunJwyThLW1X3AyHgd9IlHb6VANpQQqDr2o/qQp6McZ3y/IA2rVzKzSbw==}
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
@@ -2284,8 +2284,8 @@ packages:
     resolution: {integrity: sha512-uxFIHU0YlHYhDQtV4R9J6a52SLx28BCjT+4ieh7IGbgwVJWO+km431c4yRlREUAsAmt/uMjQUyQHNEPf0M39CA==}
     engines: {node: '>=6'}
 
-  qs@6.15.2:
-    resolution: {integrity: sha512-Rzq0KEyX/w/tEybncDgdkZrJgVUsUMk3xjh3t5bv3S1HTAtg+uOYt72+ZfwiQwKdysThkTBdL/rTi6HDmX9Ddw==}
+  qs@6.16.0:
+    resolution: {integrity: sha512-h6fhOIaRrID2CbEY2fqs+7t+UXZo+MLAnU5gRIq85uFtdiUPCdsApMlHhXogKVM4HM2DVbIjGNTTYH2OcmP1vA==}
     engines: {node: '>=0.6'}
 
   quansync@1.0.0:
@@ -3423,7 +3423,7 @@ snapshots:
     dependencies:
       undici-types: 7.18.2
 
-  '@types/qs@6.9.15': {}
+  '@types/qs@6.15.1': {}
 
   '@types/unist@3.0.3': {}
 
@@ -4708,8 +4708,9 @@ snapshots:
 
   punycode.js@2.3.1: {}
 
-  qs@6.15.2:
+  qs@6.16.0:
     dependencies:
+      es-define-property: 1.0.1
       side-channel: 1.1.1
 
   quansync@1.0.0: {}

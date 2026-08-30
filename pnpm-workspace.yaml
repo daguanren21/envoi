@@ -16,11 +16,11 @@ catalog:
   ufo: 1.6.4
   crypto-js: 4.2.0
   klona: 2.0.6
-  qs: 6.15.2
+  qs: 6.16.0
   jsencrypt: 3.5.4
   nock: 13.5.6
   "@types/crypto-js": 4.2.2
-  "@types/qs": 6.9.15
+  "@types/qs": 6.15.1
 
 allowBuilds:
   esbuild: true
